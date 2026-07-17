@@ -17,4 +17,4 @@ stats.o: stats.cpp
 
 
 clean: 
-	rm -rt *o main
+	rm -r *o main

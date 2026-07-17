@@ -18,6 +18,11 @@ struct solution
 extern solution *best_sol;
 
 void initialize_heuristic();
+
 void run_heuristic();
 
 void free_heuristic();
+
+int count_bits();
+
+void conv_int_bin();
