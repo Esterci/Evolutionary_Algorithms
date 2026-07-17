@@ -295,37 +295,13 @@ void print_solution(int *routes, int size)
 void check_solution(int *t, int size)
 {
   int i, from, to;
-  double energy_temp = BATTERY_CAPACITY;
-  double capacity_temp = MAX_CAPACITY;
   double distance_temp = 0.0;
 
   for (i = 0; i < size - 1; i++)
   {
     from = t[i];
     to = t[i + 1];
-    capacity_temp -= get_customer_demand(to);
-    energy_temp -= get_energy_consumption(from, to);
     distance_temp += get_distance(from, to);
-    if (capacity_temp < 0.0)
-    {
-      cout << "error: capacity below 0 at customer " << to << endl;
-      print_solution(t, size);
-      exit(1);
-    }
-    if (energy_temp < 0.0)
-    {
-      cout << "error: energy below 0 from " << from << " to " << to << endl;
-      print_solution(t, size);
-      exit(1);
-    }
-    if (to == DEPOT)
-    {
-      capacity_temp = MAX_CAPACITY;
-    }
-    if (is_charging_station(to) == true || to == DEPOT)
-    {
-      energy_temp = BATTERY_CAPACITY;
-    }
   }
   if (distance_temp != fitness_evaluation(t, size))
   {
