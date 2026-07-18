@@ -1,20 +1,29 @@
-all: main
+CXX = g++
+CXXFLAGS = -Wall -Wextra -g -O0
 
-main: main.o heuristic.o EVRP.o stats.o 
-	g++ main.o heuristic.o EVRP.o stats.o -o main
+TARGET = main
+OBJECTS = main.o heuristic.o EVRP.o stats.o
+
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET)
 
 main.o: main.cpp
-	g++ -c main.cpp
+	$(CXX) $(CXXFLAGS) -c main.cpp -o main.o
 
 heuristic.o: heuristic.cpp
-	g++ -c heuristic.cpp
+	$(CXX) $(CXXFLAGS) -c heuristic.cpp -o heuristic.o
 
-DBGP.o: EVRP.cpp
-	g++ -c DBGP.cpp
+EVRP.o: EVRP.cpp
+	$(CXX) $(CXXFLAGS) -c EVRP.cpp -o EVRP.o
 
 stats.o: stats.cpp
-	g++ -c stats.cpp
+	$(CXX) $(CXXFLAGS) -c stats.cpp -o stats.o
 
+clean:
+	rm -f $(OBJECTS) $(TARGET)
 
-clean: 
-	rm -r *o main
+rebuild: clean all
+
+.PHONY: all clean rebuild

@@ -1,5 +1,6 @@
 #define CHAR_LEN 100
-#define TERMINATION 25000 * ACTUAL_PROBLEM_SIZE // DO NOT CHANGE THE NUMBER
+// #define TERMINATION 25000 * ACTUAL_PROBLEM_SIZE // DO NOT CHANGE THE NUMBER
+#define TERMINATION 8 // DO NOT CHANGE THE NUMBER
 
 extern char *problem_instance; // Name of the instance
 void init_evals();             // initializes the evaluations

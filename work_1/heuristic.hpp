@@ -6,6 +6,7 @@ struct solution
   int id;
   double tour_length; // quality of the solution
   int steps;          // size of the solution
+  bool *cromossome;
   // the format of the solution is as follows:
   //*tour:  0 - 5 - 6 - 8 - 0 - 1 - 2 - 3 - 4 - 0 - 7 - 0
   //*steps: 12
@@ -19,7 +20,7 @@ extern solution *best_sol;
 
 void initialize_heuristic();
 
-void run_heuristic();
+void run_heuristic(int run);
 
 void free_heuristic();
 

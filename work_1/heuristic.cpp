@@ -14,16 +14,36 @@
 using namespace std;
 
 solution *best_sol; // see heuristic.hpp for the solution structure
+solution *population;
+solution *offspring;
+
+// GA parameters
+int n_pop = 4;
 
 /*initialize the structure of your heuristic in this function*/
 void initialize_heuristic()
 {
-
   best_sol = new solution;
-  best_sol->tour = new int[NUM_OF_CUSTOMERS + 1000];
-  best_sol->id = 1;
-  best_sol->steps = 0;
-  best_sol->tour_length = INT_MAX;
+
+  // Aloca um vetor com n_pop soluções
+  population = new solution[n_pop];
+  offspring = new solution[n_pop];
+
+  for (int i = 0; i < n_pop; i++)
+  {
+    population[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
+    population[i].id = i + 1;
+    population[i].steps = 0;
+    population[i].tour_length = INT_MAX;
+
+    offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
+    offspring[i].id = i + 1;
+    offspring[i].steps = 0;
+    offspring[i].tour_length = INT_MAX;
+  }
+
+  // Inicialmente, a primeira solução é considerada a melhor
+  best_sol = &population[0];
 }
 
 int count_bits()
@@ -43,34 +63,74 @@ int count_bits()
 
 void conv_int_bin(int *r, bool *r_bin, int n_bits)
 {
-  int cociente, resto, bin_stack = NUM_OF_CUSTOMERS * n_bits;
+  int bin_stack = NUM_OF_CUSTOMERS * n_bits;
 
-  for (int i = NUM_OF_CUSTOMERS; i >= 1; i--)
+  for (int i = NUM_OF_CUSTOMERS - 1; i >= 0; i--)
   {
-    cociente = r[i];
+    int valor = r[i];
 
-    while (cociente >= 1)
+    for (int bit = 0; bit < n_bits; bit++)
     {
+      int valor_bit = valor % 2;
 
-      resto = cociente % 2;
+      r_bin[bin_stack] = bool(valor_bit);
 
-      r_bin[bin_stack] = bool(resto);
+      cout << r_bin[bin_stack] << "-";
 
+      valor = valor / 2;
       bin_stack--;
-
-      cociente = cociente / 2;
     }
   }
 }
 
+void crossover(int n_bit)
+{
+  int n_gens = (NUM_OF_CUSTOMERS)*n_bit;
+  int cross_point = rand() / (RAND_MAX + 1.0) * n_gens;
+
+  // cout << "Começando crossover" << endl;
+
+  for (int parent = 0; parent < n_pop - 1; parent += 2)
+  {
+    // cout << "parents: " << parent << "," << parent + 1 << endl;
+    // cout << "crossover point: " << cross_point << endl;
+
+    for (int j = 0; j < n_gens; j++)
+    {
+      if (j < cross_point)
+      {
+        offspring[parent].cromossome[j] = population[parent].cromossome[j];
+        offspring[parent + 1].cromossome[j] = population[parent + 1].cromossome[j];
+      }
+      else
+      {
+        offspring[parent].cromossome[j] = population[parent + 1].cromossome[j];
+        offspring[parent + 1].cromossome[j] = population[parent].cromossome[j];
+      }
+
+      // cout << "p1g" << j << ":" << population[parent].cromossome[j] << ",";
+      // cout << "p2g" << j << ":" << population[parent + 1].cromossome[j] << endl
+      //  << endl;
+      // cout << "o1g" << j << ":" << population[parent].cromossome[j] << ",";
+      // cout << "o2g" << j << ":" << population[parent + 1].cromossome[j] << endl;
+    }
+    // cout << endl;
+    population[parent] = offspring[parent];
+    population[parent + 1] = offspring[parent + 1];
+  }
+}
+
 /*implement your heuristic in this function*/
-void run_heuristic()
+void run_heuristic(int run)
 {
 
+  cout << "Run: " << run << endl;
+
   /*generate a random solution for the random heuristic*/
-  int i, help, object, n_bit, tot_assigned = 0;
+  int i, help, object, n_bit, tot_assigned;
   int *r;
   bool *r_bin;
+  double best_fitness = INT_MAX;
   int from, to;
 
   n_bit = count_bits(); // Count number of bits to represent costumers id's
@@ -79,56 +139,87 @@ void run_heuristic()
 
   r_bin = new bool[(NUM_OF_CUSTOMERS + 1) * n_bit];
 
-  // set indexes of objects
-  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
+  for (int j = 0; j < n_pop; j++)
   {
-    r[i - 1] = i;
+    cout << "seed: " << (run - 1) * (n_pop) + j + 1 << endl;
+
+    srand((run - 1) * n_pop + j + 1); // random seed
+
+    tot_assigned = 0;
+
+    for (i = 0; i < NUM_OF_CUSTOMERS; i++)
+    {
+      r[i] = i + 1;
+    }
+
+    // initilize a false bool vector
+    for (i = 0; i < (NUM_OF_CUSTOMERS + 1) * n_bit; i++)
+    {
+      r_bin[i] = bool(0);
+    }
+
+    offspring[j].cromossome = r_bin;
+
+    cout << "parent cromossome: ";
+    // randomly change indexes of objects
+    for (i = 0; i <= NUM_OF_CUSTOMERS; i++) // Tem como fixarmos e salvarmos a seed?
+    {
+      object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
+      help = r[i];
+      r[i] = r[i + object];
+      r[i + object] = help;
+      tot_assigned++;
+
+      cout << r[i] << "-";
+    }
+    cout << endl;
+
+    cout << "parent bin cromossome: ";
+    conv_int_bin(r, r_bin, n_bit);
+    cout << endl;
+
+    population[j].cromossome = r_bin;
+
+    population[j].steps = 0;
+    population[j].tour_length = INT_MAX;
+
+    population[j].tour[0] = DEPOT;
+    population[j].steps++;
   }
 
-  // initilize a false bool vector
-  for (i = 0; i < (NUM_OF_CUSTOMERS + 1) * n_bit; i++)
+  crossover(n_bit);
+
+  for (int j = 0; j < n_pop; j++)
   {
-    r_bin[i] = 0;
+    i = 0;
+
+    while (i < NUM_OF_CUSTOMERS)
+    {
+      from = population[j].tour[population[j].steps - 1];
+      to = r[i];
+
+      population[j].tour[population[j].steps] = to;
+      population[j].steps++;
+      i++;
+    }
+
+    // close EVRP tour to return back to the depot
+    if (population[j].tour[population[j].steps - 1] != DEPOT)
+    {
+      population[j].tour[population[j].steps] = DEPOT;
+      population[j].steps++;
+    }
+
+    population[j].tour_length = fitness_evaluation(population[j].tour, population[j].steps);
+
+    if (population[j].tour_length < best_fitness)
+    {
+      best_sol = &population[j];
+    }
+
+    cout << endl
+         << endl;
   }
-
-  // randomly change indexes of objects
-  for (i = 0; i <= NUM_OF_CUSTOMERS; i++) // Tem como fixarmos e salvarmos a seed?
-  {
-    object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
-    help = r[i];
-    r[i] = r[i + object];
-    r[i + object] = help;
-    tot_assigned++;
-  }
-
-  conv_int_bin(r, r_bin, n_bit);
-
-  best_sol->steps = 0;
-  best_sol->tour_length = INT_MAX;
-
-  best_sol->tour[0] = DEPOT;
-  best_sol->steps++;
-
-  i = 0;
-
-  while (i < NUM_OF_CUSTOMERS)
-  {
-    from = best_sol->tour[best_sol->steps - 1];
-    to = r[i];
-
-    best_sol->tour[best_sol->steps] = to;
-    best_sol->steps++;
-    i++;
-  }
-
-  // close EVRP tour to return back to the depot
-  if (best_sol->tour[best_sol->steps - 1] != DEPOT)
-  {
-    best_sol->tour[best_sol->steps] = DEPOT;
-    best_sol->steps++;
-  }
-
-  best_sol->tour_length = fitness_evaluation(best_sol->tour, best_sol->steps);
 
   // free memory
   delete[] r;
@@ -140,4 +231,5 @@ void free_heuristic()
 {
 
   delete[] best_sol->tour;
+  delete[] population;
 }

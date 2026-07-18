@@ -9,13 +9,11 @@
 using namespace std;
 
 /*initialiazes a run for your heuristic*/
-void start_run(int r)
+void start_run()
 {
 
-  srand(r); // random seed
   init_evals();
   init_current_best();
-  cout << "Run: " << r << " with random seed " << r << endl;
 }
 
 /*gets an observation of the run for your heuristic*/
@@ -57,7 +55,7 @@ int main(int argc, char *argv[])
   for (run = 1; run <= MAX_TRIALS; run++)
   {
     /*Step 3*/
-    start_run(run);
+    start_run();
     // Initialize your heuristic here
     initialize_heuristic(); // heuristic.h
 
@@ -65,7 +63,7 @@ int main(int argc, char *argv[])
     while (!termination_condition())
     {
       // Execute your heuristic
-      run_heuristic(); // heuristic.h
+      run_heuristic(run); // heuristic.h
     }
     
     print_solution(best_sol->tour,best_sol->steps);

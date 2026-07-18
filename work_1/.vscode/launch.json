@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Debug EVRP",
+            "type": "cppdbg",
+            "request": "launch",
+
+            "program": "${workspaceFolder}/main",
+
+            "args": [
+                "E-n22-k4.evrp"
+            ],
+
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+
+            "environment": [],
+            "externalConsole": false,
+
+            "MIMode": "gdb",
+
+            "setupCommands": [
+                {
+                    "description": "Ativar pretty-printing do GDB",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+
+            "preLaunchTask": "Compilar EVRP com Make"
+        }
+    ]
+}
