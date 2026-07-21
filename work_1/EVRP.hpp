@@ -25,7 +25,7 @@ extern int MIN_VEHICLES;
 
 // METHODS THAT CAN BE USED IN YOUR ALGORITHM IMPLEMENTATION
 double fitness_evaluation(int *routes, int size); // evaluates an EVRP solution
-void print_solution(int *routes, int size);       // used to print the solution
+void print_solution(int *routes, int size, int n_pop);       // used to print the solution
 void check_solution(int *routes, int size);       // used to validate the solution
 void read_problem(char *filename);                // reads .evrp file
 double get_energy_consumption(int from, int to);  // returns the energy consumption

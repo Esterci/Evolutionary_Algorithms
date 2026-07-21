@@ -74,7 +74,6 @@ void take_route(solution *route)
 /*initialize the structure of your heuristic in this function*/
 void initialize_heuristic(int run)
 {
-
   /*generate a random solution for the random heuristic*/
   int i, j, help, object, tot_assigned;
 
@@ -91,6 +90,11 @@ void initialize_heuristic(int run)
     population[i].steps = 0;
     population[i].tour_length = INT_MAX;
     population[i].weight = 0;
+
+    if (i == 0)
+    {
+      best_sol = &population[0];
+    }
 
     srand((run - 1) * n_pop + i + 1); // random seed
 
@@ -114,6 +118,11 @@ void initialize_heuristic(int run)
     take_route(&population[i]);
 
     population[i].tour_length = fitness_evaluation(population[i].tour, population[i].steps);
+
+    if (population[i].tour_length < best_sol->tour_length)
+    {
+      best_sol = &population[i];
+    }
   }
 
   for (i = 0; i < n_offspring; i++)
@@ -125,9 +134,6 @@ void initialize_heuristic(int run)
     offspring[i].tour_length = INT_MAX;
     offspring[i].weight = 0;
   }
-
-  // Inicialmente, a primeira solução é considerada a melhor
-  best_sol = &population[0];
 }
 
 int parent_selection(solution ranked[])
@@ -217,6 +223,11 @@ void change_pop()
   // Test fitness of offspring
   offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
 
+  if (offspring[0].tour_length < best_sol->tour_length)
+  {
+    best_sol = &offspring[0];
+  }
+
   // The survival of the fittest
   // replace less fit individual by the offspring
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
@@ -247,7 +258,6 @@ void run_heuristic()
   crossover(parent1, parent2);
 
   change_pop();
-
 }
 
 /*free memory structures*/

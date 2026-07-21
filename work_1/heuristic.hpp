@@ -18,6 +18,7 @@ struct solution
 };
 
 extern solution *best_sol;
+extern int n_pop;
 
 bool compare_fitness(const solution &a, const solution &b);
 

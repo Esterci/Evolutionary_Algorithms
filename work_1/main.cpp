@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
       run_heuristic(); // heuristic.h
     }
 
-    print_solution(best_sol->tour, best_sol->steps);
+    print_solution(best_sol->tour, best_sol->steps, n_pop);
 
     // check_solution(best_sol->tour,best_sol->steps);
 

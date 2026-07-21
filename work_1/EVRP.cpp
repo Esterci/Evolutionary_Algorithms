@@ -278,11 +278,12 @@ double fitness_evaluation(int *routes, int size)
 /* Outputs the routes of the solution. Taken as input           */
 /* an array of node indeces and its length                      */
 /****************************************************************/
-void print_solution(int *routes, int size)
+void print_solution(int *routes, int size, int n_pop)
 {
-  int i;
 
-  for (i = 0; i < size; i++)
+  cout << "n_pop: " << n_pop << " - ";
+
+  for (int i = 0; i < size; i++)
   {
     cout << routes[i] << " , ";
   }
