@@ -6,8 +6,8 @@ struct solution
   int id;
   double tour_length; // quality of the solution
   int steps;          // size of the solution
-  bool *cromossome;
-  int *real_cromossome;
+  int weight;
+  int *cromossome;
   // the format of the solution is as follows:
   //*tour:  0 - 5 - 6 - 8 - 0 - 1 - 2 - 3 - 4 - 0 - 7 - 0
   //*steps: 12
@@ -19,16 +19,18 @@ struct solution
 
 extern solution *best_sol;
 
+bool compare_fitness(const solution &a, const solution &b);
+
+void take_route(solution *route);
+
 void initialize_heuristic(int run);
+
+int parent_selection(solution ranked[]);
+
+void crossover(int p1, int p2);
+
+void change_pop();
 
 void run_heuristic();
 
 void free_heuristic();
-
-int count_bits();
-
-void conv_int_bin(int *r, bool *r_bin);
-
-void take_route(solution *route);
-
-void change_pop();

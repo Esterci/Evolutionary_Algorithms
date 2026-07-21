@@ -7,6 +7,7 @@
 #include <math.h>
 #include <fstream>
 #include <limits.h>
+#include <algorithm>
 
 #include "heuristic.hpp"
 #include "EVRP.hpp"
@@ -19,39 +20,43 @@ solution *offspring;
 
 // GA parameters
 int n_pop = 4;
-int n_bit = 0;
+int n_offspring = 1;
+
+bool compare_fitness(const solution &a, const solution &b)
+{
+  return a.tour_length < b.tour_length;
+}
 
 void take_route(solution *route)
 {
   int i, j;
   double best_fitness = INT_MAX;
-  int from, to;
+  int to;
 
   for (i = 0; i < n_pop; i++)
   {
     population[i].steps = 1;
-    population[i].tour[0] = DEPOT;
+    population[i].cromossome[0] = DEPOT;
 
     j = 0;
 
     while (j < NUM_OF_CUSTOMERS)
     {
-      from = route[i].tour[route[i].steps - 1];
-      to = route[i].real_cromossome[j];
+      to = route[i].cromossome[j];
 
-      route[i].tour[route[i].steps] = to;
+      route[i].cromossome[route[i].steps] = to;
       route[i].steps++;
       j++;
     }
 
     // close EVRP tour to return back to the depot
-    if (route[i].tour[route[i].steps - 1] != DEPOT)
+    if (route[i].cromossome[route[i].steps - 1] != DEPOT)
     {
-      route[i].tour[route[i].steps] = DEPOT;
+      route[i].cromossome[route[i].steps] = DEPOT;
       route[i].steps++;
     }
 
-    route[i].tour_length = fitness_evaluation(route[i].tour, route[i].steps);
+    route[i].tour_length = fitness_evaluation(route[i].cromossome, route[i].steps);
 
     if (route[i].tour_length < best_fitness)
     {
@@ -66,8 +71,6 @@ void initialize_heuristic(int run)
   /*generate a random solution for the random heuristic*/
   int i, j, help, object, tot_assigned;
 
-  n_bit = count_bits(); // Count number of bits to represent costumers id's
-
   // Aloca um vetor com n_pop soluções
   population = new solution[n_pop];
   offspring = new solution[n_pop];
@@ -76,25 +79,21 @@ void initialize_heuristic(int run)
   {
 
     population[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
-    population[i].real_cromossome = new int[NUM_OF_CUSTOMERS + 1];
-    population[i].cromossome = new bool[(NUM_OF_CUSTOMERS + 1) * n_bit];
+    population[i].cromossome = new int[(NUM_OF_CUSTOMERS + 1)];
     population[i].id = i + 1;
     population[i].steps = 1;
     population[i].tour_length = INT_MAX;
+    population[i].weight = 0;
+  }
 
+  for (i = 0; i < n_offspring; i++)
+  {
     offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
-    offspring[i].real_cromossome = new int[NUM_OF_CUSTOMERS + 1];
-    offspring[i].cromossome = new bool[(NUM_OF_CUSTOMERS + 1) * n_bit];
+    offspring[i].cromossome = new int[(NUM_OF_CUSTOMERS + 1)];
     offspring[i].id = i + 1;
     offspring[i].steps = 1;
     offspring[i].tour_length = INT_MAX;
-
-    // initilize a false bool vector
-    for (j = 0; j < (NUM_OF_CUSTOMERS + 1) * n_bit; j++)
-    {
-      population[i].cromossome[j] = false;
-      offspring[i].cromossome[j] = false;
-    }
+    offspring[i].weight = 0;
   }
 
   // Inicialmente, a primeira solução é considerada a melhor
@@ -112,158 +111,151 @@ void initialize_heuristic(int run)
 
     for (j = 0; j < NUM_OF_CUSTOMERS; j++)
     {
-      population[i].real_cromossome[j] = j + 1;
+      population[i].cromossome[j] = j + 1;
     }
 
     // randomly change indexes of obiects
     for (j = 0; j <= NUM_OF_CUSTOMERS; j++) // Tem como fixarmos e salvarmos a seed?
     {
       object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
-      help = population[i].real_cromossome[j];
-      population[i].real_cromossome[j] = population[i].real_cromossome[j + object];
-      population[i].real_cromossome[j + object] = help;
+      help = population[i].cromossome[j];
+      population[i].cromossome[j] = population[i].cromossome[j + object];
+      population[i].cromossome[j + object] = help;
       tot_assigned++;
     }
-
-    conv_int_bin(population[i].real_cromossome, population[i].cromossome);
   }
 
   take_route(population);
 }
 
-int count_bits()
+int parent_selection(solution ranked[])
 {
 
-  int cociente = NUM_OF_CUSTOMERS, cont = 1;
+  // Ordena do menor fitness para o maior.
+  sort(ranked, ranked + n_pop, compare_fitness);
 
-  while (cociente >= 2)
+  int totalWeight = 0;
+
+  // O melhor recebe o maior peso.
+  for (int i = 0; i < n_pop; i++)
   {
-
-    cociente = cociente / 2;
-    cont++;
+    ranked[i].weight = n_pop - i;
+    totalWeight += ranked[i].weight;
   }
 
-  return cont;
-}
+  // Sorteia entre 1 e totalWeight.
+  int randomValue = rand() % totalWeight + 1;
 
-void conv_int_bin(int *r, bool *r_bin)
-{
-  int bin_stack = NUM_OF_CUSTOMERS * n_bit;
+  int accumulatedWeight = 0;
 
-  for (int i = NUM_OF_CUSTOMERS - 1; i >= 0; i--)
+  for (int i = 0; i < n_pop; i++)
   {
-    int valor = r[i];
+    accumulatedWeight += ranked[i].weight;
 
-    for (int bit = 0; bit < n_bit; bit++)
+    if (randomValue <= accumulatedWeight)
     {
-      int valor_bit = valor % 2;
-
-      r_bin[bin_stack] = bool(valor_bit);
-
-      valor = valor / 2;
-      bin_stack--;
+      return i;
     }
   }
+
+  return NUM_OF_CUSTOMERS - 1;
 }
 
-void crossover()
+void crossover(int p1, int p2)
 {
-  int cross_point, customer_cut, n_gens = NUM_OF_CUSTOMERS * n_bit;
+  int cut1 = rand() % (NUM_OF_CUSTOMERS - 3) + 1;
 
-  for (int parent = 0; parent < n_pop - 1; parent += 2)
+  int cut2 = rand() % (NUM_OF_CUSTOMERS - 2 - cut1) + (cut1 + 1);
+
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-    customer_cut = rand() % (NUM_OF_CUSTOMERS);
+    offspring[0].cromossome[i] = -1;
+  }
 
-    cross_point = customer_cut * n_bit;
+  // Copia o segmento do primeiro pai.
+  for (int i = cut1; i <= cut2; i++)
+  {
+    offspring[0].cromossome[i] = population[p1].cromossome[i];
+  }
 
-    cout << customer_cut << ", " << cross_point << endl;
-
-    for (int j = 0; j < n_gens; j++)
+  // Preenche as posições externas usando o segundo pai.
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    if (i < cut1 || i > cut2)
     {
-      if (j < cross_point)
-      {
-        offspring[parent].cromossome[j] =
-            population[parent].cromossome[j];
+      int value = population[p2].cromossome[i];
+      bool conflict = true;
 
-        offspring[parent + 1].cromossome[j] =
-            population[parent + 1].cromossome[j];
-      }
-      else
-      {
-        offspring[parent].cromossome[j] =
-            population[parent + 1].cromossome[j];
+      cout << "entrando no while" << endl;
 
-        offspring[parent + 1].cromossome[j] =
-            population[parent].cromossome[j];
+      while (conflict)
+      {
+        conflict = false;
+
+        // Verifica se o valor já está no segmento copiado.
+        for (int j = cut1; j <= cut2; j++)
+        {
+          if (offspring[0].cromossome[j] == value)
+          {
+            // Busca o valor correspondente no outro segmento.
+            value = population[p2].cromossome[j];
+            conflict = true;
+            break;
+          }
+        }
       }
+
+      cout << "sai do while" << endl;
+
+      offspring[0].cromossome[i] = value;
     }
   }
 }
 
 void change_pop()
 {
-  int soma, j, cromossome_len = NUM_OF_CUSTOMERS * n_bit;
-  bool valido, valor_bit;
+  // Test fitness of offspring
+  offspring[0].tour_length = fitness_evaluation(offspring[0].cromossome, offspring[0].steps);
 
-  for (int i = 0; i < n_pop; i++)
+  cout << "Offspring tour: ";
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-
-    valido = true;
-
-    for (int gene = 0; gene < NUM_OF_CUSTOMERS; gene++)
-    {
-
-      soma = 0;
-
-      for (int bit = 0; bit < n_bit; bit++)
-      {
-        int posicao =
-            gene * n_bit + bit;
-
-        valor_bit = offspring[i].cromossome[posicao];
-
-        soma += valor_bit * pow(2, (n_bit - bit - 1));
-      }
-
-      if (soma < 1 || soma > NUM_OF_CUSTOMERS)
-      {
-        valido = false;
-        break;
-      }
-    }
-
-    if (valido)
-    {
-      cout << "V valido" << endl;
-      for (j = 0; j < cromossome_len; j++)
-      {
-        population[i].cromossome[j] = offspring[i].cromossome[j];
-      }
-
-      for (j = 0; j < NUM_OF_CUSTOMERS; j++)
-      {
-        population[i].real_cromossome[j] = offspring[i].real_cromossome[j];
-      }
-    }
-    else
-    {
-      cout << "X invalido" << endl;
-
-      for (j = 0; j < cromossome_len; j++)
-      {
-        cout << offspring[i].cromossome[j];
-      }
-
-      cout << endl;
-    }
+    cout << offspring[0].cromossome[i] << "-";
   }
+  cout << endl
+       << "fitness: " << offspring[0].tour_length << endl;
+
+  cout << "Parent tour: ";
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    cout << population[0].cromossome[i] << "-";
+  }
+  cout << endl
+       << "fitness: " << population[0].tour_length << endl;
+
+  // The survival of the fittest
+  // replace less fit individual by the offspring
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    population[n_pop - 1].cromossome[i] = offspring[0].cromossome[i];
+  }
+
+  population[n_pop - 1].tour_length = offspring[0].tour_length;
 }
 
 /*implement your heuristic in this function*/
 void run_heuristic()
 {
+  int parent1, parent2 = 0;
 
-  crossover();
+  parent1 = parent_selection(population);
+
+  while (parent2 == parent1)
+  {
+    parent2 = parent_selection(population);
+  }
+
+  crossover(parent1, parent2);
 
   change_pop();
 
