@@ -21,10 +21,11 @@ solution *offspring;
 // GA parameters
 int n_pop = 8;
 int n_offspring = 1;
+double select_pres = 1.5;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
-  return a.tour_length < b.tour_length;
+  return a.tour_length > b.tour_length;
 }
 
 void take_route(solution *route)
@@ -69,6 +70,11 @@ void take_route(solution *route)
     route->tour[route->steps] = DEPOT;
     route->steps++;
   }
+}
+
+double linear_classification(int i)
+{
+  return (2 - select_pres) / n_pop + 2 * i * (select_pres - 1) / (n_pop * (n_pop - 1));
 }
 
 /*initialize the structure of your heuristic in this function*/
@@ -142,19 +148,17 @@ int parent_selection(solution ranked[])
   // Ordena do menor fitness para o maior.
   sort(ranked, ranked + n_pop, compare_fitness);
 
-  int totalWeight = 0;
-
   // O melhor recebe o maior peso.
   for (int i = 0; i < n_pop; i++)
   {
-    ranked[i].weight = n_pop - i;
-    totalWeight += ranked[i].weight;
+    ranked[i].weight = linear_classification(i);
   }
 
   // Sorteia entre 1 e totalWeight.
-  int randomValue = rand() % totalWeight + 1;
 
-  int accumulatedWeight = 0;
+  double randomValue = rand() / (RAND_MAX *1.0);
+
+  double accumulatedWeight = 0;
 
   for (int i = 0; i < n_pop; i++)
   {
@@ -232,15 +236,15 @@ void change_pop()
   // replace less fit individual by the offspring
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-    population[n_pop - 1].cromossome[i] = offspring[0].cromossome[i];
+    population[0].cromossome[i] = offspring[0].cromossome[i];
   }
 
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-    population[n_pop - 1].cromossome[i] = offspring[0].cromossome[i];
+    population[0].cromossome[i] = offspring[0].cromossome[i];
   }
 
-  population[n_pop - 1].tour_length = offspring[0].tour_length;
+  population[0].tour_length = offspring[0].tour_length;
 }
 
 /*implement your heuristic in this function*/

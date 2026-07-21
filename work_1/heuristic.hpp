@@ -6,7 +6,7 @@ struct solution
   int id;
   double tour_length; // quality of the solution
   int steps;          // size of the solution
-  int weight;
+  double weight;
   int *cromossome;
   // the format of the solution is as follows:
   //*tour:  0 - 5 - 6 - 8 - 0 - 1 - 2 - 3 - 4 - 0 - 7 - 0
@@ -21,6 +21,8 @@ extern solution *best_sol;
 extern int n_pop;
 
 bool compare_fitness(const solution &a, const solution &b);
+
+double linear_classification(int i);
 
 void take_route(solution *route);
 
