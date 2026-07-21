@@ -19,7 +19,7 @@ solution *population;
 solution *offspring;
 
 // GA parameters
-int n_pop = 4;
+int n_pop = 8;
 int n_offspring = 1;
 
 bool compare_fitness(const solution &a, const solution &b)
@@ -29,45 +29,52 @@ bool compare_fitness(const solution &a, const solution &b)
 
 void take_route(solution *route)
 {
-  int i, j;
-  double best_fitness = INT_MAX;
+  /*generate a random solution for the random heuristic*/
+  int i, help, object, tot_assigned = 0;
   int to;
 
-  for (i = 0; i < n_pop; i++)
+  // set indexes of objects
+  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
   {
-    population[i].steps = 1;
-    population[i].cromossome[0] = DEPOT;
+    route->cromossome[i - 1] = i;
+  }
+  // randomly change indexes of objects
+  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
+    help = route->cromossome[i];
+    route->cromossome[i] = route->cromossome[i + object];
+    route->cromossome[i + object] = help;
+    tot_assigned++;
+  }
 
-    j = 0;
+  route->steps = 1;
+  route->tour_length = INT_MAX;
 
-    while (j < NUM_OF_CUSTOMERS)
-    {
-      to = route[i].cromossome[j];
+  route->tour[0] = DEPOT;
 
-      route[i].cromossome[route[i].steps] = to;
-      route[i].steps++;
-      j++;
-    }
+  i = 0;
+  while (i < NUM_OF_CUSTOMERS)
+  {
+    to = route->cromossome[i];
 
-    // close EVRP tour to return back to the depot
-    if (route[i].cromossome[route[i].steps - 1] != DEPOT)
-    {
-      route[i].cromossome[route[i].steps] = DEPOT;
-      route[i].steps++;
-    }
+    route->tour[route->steps] = to;
+    route->steps++;
+    i++;
+  }
 
-    route[i].tour_length = fitness_evaluation(route[i].cromossome, route[i].steps);
-
-    if (route[i].tour_length < best_fitness)
-    {
-      best_sol = &route[i];
-    }
+  // close EVRP tour to return back to the depot
+  if (route->tour[route->steps - 1] != DEPOT)
+  {
+    route->tour[route->steps] = DEPOT;
+    route->steps++;
   }
 }
 
 /*initialize the structure of your heuristic in this function*/
 void initialize_heuristic(int run)
 {
+
   /*generate a random solution for the random heuristic*/
   int i, j, help, object, tot_assigned;
 
@@ -79,31 +86,11 @@ void initialize_heuristic(int run)
   {
 
     population[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
-    population[i].cromossome = new int[(NUM_OF_CUSTOMERS + 1)];
+    population[i].cromossome = new int[(NUM_OF_CUSTOMERS)];
     population[i].id = i + 1;
-    population[i].steps = 1;
+    population[i].steps = 0;
     population[i].tour_length = INT_MAX;
     population[i].weight = 0;
-  }
-
-  for (i = 0; i < n_offspring; i++)
-  {
-    offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
-    offspring[i].cromossome = new int[(NUM_OF_CUSTOMERS + 1)];
-    offspring[i].id = i + 1;
-    offspring[i].steps = 1;
-    offspring[i].tour_length = INT_MAX;
-    offspring[i].weight = 0;
-  }
-
-  // Inicialmente, a primeira solução é considerada a melhor
-  best_sol = &population[0];
-
-  cout << "Run: " << run << endl;
-
-  for (i = 0; i < n_pop; i++)
-  {
-    cout << "   -> seed: " << (run - 1) * (n_pop) + i + 1 << endl;
 
     srand((run - 1) * n_pop + i + 1); // random seed
 
@@ -123,9 +110,24 @@ void initialize_heuristic(int run)
       population[i].cromossome[j + object] = help;
       tot_assigned++;
     }
+
+    take_route(&population[i]);
+
+    population[i].tour_length = fitness_evaluation(population[i].tour, population[i].steps);
   }
 
-  take_route(population);
+  for (i = 0; i < n_offspring; i++)
+  {
+    offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
+    offspring[i].cromossome = new int[(NUM_OF_CUSTOMERS)];
+    offspring[i].id = i + 1;
+    offspring[i].steps = 0;
+    offspring[i].tour_length = INT_MAX;
+    offspring[i].weight = 0;
+  }
+
+  // Inicialmente, a primeira solução é considerada a melhor
+  best_sol = &population[0];
 }
 
 int parent_selection(solution ranked[])
@@ -186,8 +188,6 @@ void crossover(int p1, int p2)
       int value = population[p2].cromossome[i];
       bool conflict = true;
 
-      cout << "entrando no while" << endl;
-
       while (conflict)
       {
         conflict = false;
@@ -205,36 +205,25 @@ void crossover(int p1, int p2)
         }
       }
 
-      cout << "sai do while" << endl;
-
       offspring[0].cromossome[i] = value;
     }
   }
+
+  take_route(&offspring[0]);
 }
 
 void change_pop()
 {
   // Test fitness of offspring
-  offspring[0].tour_length = fitness_evaluation(offspring[0].cromossome, offspring[0].steps);
-
-  cout << "Offspring tour: ";
-  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
-  {
-    cout << offspring[0].cromossome[i] << "-";
-  }
-  cout << endl
-       << "fitness: " << offspring[0].tour_length << endl;
-
-  cout << "Parent tour: ";
-  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
-  {
-    cout << population[0].cromossome[i] << "-";
-  }
-  cout << endl
-       << "fitness: " << population[0].tour_length << endl;
+  offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
 
   // The survival of the fittest
   // replace less fit individual by the offspring
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    population[n_pop - 1].cromossome[i] = offspring[0].cromossome[i];
+  }
+
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
     population[n_pop - 1].cromossome[i] = offspring[0].cromossome[i];
@@ -259,7 +248,6 @@ void run_heuristic()
 
   change_pop();
 
-  take_route(population);
 }
 
 /*free memory structures*/
