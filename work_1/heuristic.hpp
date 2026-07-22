@@ -32,6 +32,8 @@ int parent_selection(solution ranked[]);
 
 void crossover(int p1, int p2);
 
+void mutation();
+
 void change_pop();
 
 void run_heuristic();

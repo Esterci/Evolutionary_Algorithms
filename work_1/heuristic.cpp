@@ -19,9 +19,9 @@ solution *population;
 solution *offspring;
 
 // GA parameters
-int n_pop = 8;
+int n_pop = 32;
 int n_offspring = 1;
-double select_pres = 1.5;
+double select_pres = 2;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -156,7 +156,7 @@ int parent_selection(solution ranked[])
 
   // Sorteia entre 1 e totalWeight.
 
-  double randomValue = rand() / (RAND_MAX *1.0);
+  double randomValue = rand() / (RAND_MAX * 1.0);
 
   double accumulatedWeight = 0;
 
@@ -184,12 +184,14 @@ void crossover(int p1, int p2)
     offspring[0].cromossome[i] = -1;
   }
 
+  
   // Copia o segmento do primeiro pai.
   for (int i = cut1; i <= cut2; i++)
   {
     offspring[0].cromossome[i] = population[p1].cromossome[i];
   }
-
+  
+  
   // Preenche as posições externas usando o segundo pai.
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
@@ -197,7 +199,7 @@ void crossover(int p1, int p2)
     {
       int value = population[p2].cromossome[i];
       bool conflict = true;
-
+      
       while (conflict)
       {
         conflict = false;
@@ -223,9 +225,10 @@ void crossover(int p1, int p2)
 }
 
 void change_pop()
-{
+{  
   // Test fitness of offspring
   offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
+
 
   if (offspring[0].tour_length < best_sol->tour_length)
   {
@@ -247,19 +250,44 @@ void change_pop()
   population[0].tour_length = offspring[0].tour_length;
 }
 
+void mutation()
+{
+  int aux, g1, g2;
+
+  g1 = rand() % NUM_OF_CUSTOMERS;
+
+  g2 = g1;
+
+  while (g2 == g1)
+  {
+    g2 = rand() % NUM_OF_CUSTOMERS;
+  }
+
+  aux = offspring[0].cromossome[g1];
+
+  offspring[0].cromossome[g1] = offspring[0].cromossome[g2];
+
+  offspring[0].cromossome[g2] = aux;
+}
+
 /*implement your heuristic in this function*/
 void run_heuristic()
 {
-  int parent1, parent2 = 0;
+  int parent1, parent2;
 
   parent1 = parent_selection(population);
+
+  parent2 = parent1;
 
   while (parent2 == parent1)
   {
     parent2 = parent_selection(population);
   }
-
+  
   crossover(parent1, parent2);
+
+
+  mutation();
 
   change_pop();
 }
