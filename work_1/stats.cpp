@@ -34,7 +34,7 @@ void open_stats(void)
 
   // initialize and open output files
   perf_filename = new char[CHAR_LEN];
-  sprintf(perf_filename, "stats.%s.txt",
+  sprintf(perf_filename, "stats/stats.%s.txt",
           problem_instance);
   // for performance
   if ((log_performance = fopen(perf_filename, "a")) == NULL)
@@ -106,6 +106,17 @@ double worst_of_vector(double *values, int l)
     }
   }
   return max;
+}
+
+void write_solution(int *routes, int size)
+{
+  fprintf(log_performance, "route: ");
+  
+  for (int i = 0; i < size; i++)
+  {
+    fprintf(log_performance, "%d, ", routes[i]);
+  }
+  fprintf(log_performance, "\n");
 }
 
 void close_stats(void)

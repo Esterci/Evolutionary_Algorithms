@@ -45,8 +45,25 @@ int main(int argc, char *argv[])
 {
 
   int run;
+
   /*Step 1*/
-  problem_instance = argv[1];     // pass the .evrp filename as an argument
+  problem_instance = argv[1]; // pass the .evrp filename as an argument
+  mutation_rate = stof(argv[2]);
+  crossover_rate = stof(argv[3]);
+  mutation_method = argv[4];
+  select_pres = stof(argv[5]);
+  n_pop = stoi(argv[6]);
+
+  cout << "===== SELECTED PARAMETERS =====" << endl;
+  cout << "Instance file:      " << problem_instance << endl;
+  cout << "Mutation rate:      " << mutation_rate << endl;
+  cout << "Crossover rate:     " << crossover_rate << endl;
+  cout << "Crossover method:   " << mutation_method << endl;
+  cout << "Selection pressure: " << select_pres << endl;
+  cout << "Population size:    " << n_pop << endl;
+  cout << "================================" << endl
+       << endl;
+
   read_problem(problem_instance); // Read EVRP from file from EVRP.h
 
   /*Step 2*/
@@ -56,6 +73,7 @@ int main(int argc, char *argv[])
   {
     /*Step 3*/
     start_run();
+
     // Initialize your heuristic here
     initialize_heuristic(run); // heuristic.h
 
@@ -66,7 +84,10 @@ int main(int argc, char *argv[])
       run_heuristic(); // heuristic.h
     }
 
-    print_solution(best_sol->tour, best_sol->steps, n_pop);
+    // print_solution(best_sol->tour, best_sol->steps);
+
+    write_solution(best_sol->tour, best_sol->steps);
+
 
     // check_solution(best_sol->tour,best_sol->steps);
 
