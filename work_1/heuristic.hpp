@@ -19,6 +19,10 @@ struct solution
 
 extern solution *best_sol;
 extern int n_pop;
+extern float mutation_rate;
+extern float crossover_rate;
+extern char *mutation_method;
+extern float select_pres;
 
 bool compare_fitness(const solution &a, const solution &b);
 
