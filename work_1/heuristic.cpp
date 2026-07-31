@@ -18,10 +18,11 @@ solution *best_sol; // see heuristic.hpp for the solution structure
 solution *population;
 solution *offspring;
 
-// GA parameters
-int n_pop = 32;
-int n_offspring = 1;
-double select_pres = 2;
+int n_pop;
+float mutation_rate;
+float crossover_rate;
+char *crossover_method;
+float select_pres;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
