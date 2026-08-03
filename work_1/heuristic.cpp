@@ -8,7 +8,10 @@
 #include <fstream>
 #include <limits.h>
 #include <algorithm>
-
+#include <vector>
+#include <random>
+#include <cstdlib>
+#include <ctime>
 #include "heuristic.hpp"
 #include "EVRP.hpp"
 
@@ -249,6 +252,259 @@ void change_pop()
 
   population[0].tour_length = offspring[0].tour_length;
 }
+
+/*
+Mutação por Inserção:
+
+int n;
+int origin;
+int destination;
+int gene;
+int i;
+
+void mutation_insertion()
+{
+  n = tamanho do cromossomo
+
+  if (n < 2)
+  {
+    return;
+  }
+// Seleciona aleatoriamento posição do gene;
+
+  origin = rand () % n
+
+// Seleciona nova posição;
+
+destination = rand () % n;
+
+// Posições precisam ser diferentes;
+
+while (destination == origem)
+{
+  destination = rand() % n;
+}
+  // Guarda gene sorteado;
+  gene = chromossome[origin];
+
+  if (origin < destination)  // Desloca para esquerda;
+  {
+    for (i = origin, i < destination; i++)
+  {
+    chromossome[i]=chromossome[i+1];
+    }
+  }
+  else       // desloca para direita;
+  {
+    for (i = origin; i>destination; i--)
+    {
+      chromossome[i] = chromossome[i-1];
+    }
+  }
+    // Insere gene na nova posição sorteada;
+      chromossome[destination] = gene;
+}
+
+*/
+
+/*
+// Mutação por mistura:
+
+// Variáveis globais
+std::vector<int> chromosome = {};
+std::vector<int> positions;
+
+int n;    // armarzena o tamanho do cromossomo.
+int quantity; // Armazena quantas posições serão escolhidas para a mistura.
+int position; // Guarda temporariamente uma posição sorteada.
+int i;        
+int j;
+int temp;
+
+bool repeated;  //se uma posição sorteada já está no vetor positions.
+
+
+void mutation_mix()
+{
+    n = chromosome.size();
+
+    if (n < 2)
+    {
+        return;
+    }
+
+    positions.clear();      // Limpa as posições de uma mutação anterior;
+
+    // Seleciona aleatoriamente quantos genes serão misturados - 
+    quantity = 2 + rand() % (n - 1);    // Seleciona 2 até 6 gene (?) conferir;
+
+    // Seleciona posições aleatórias
+    while (positions.size() < quantity)
+    {
+        position = rand() % n;  //sorteia a posição;
+
+        repeated = false;
+
+        // Verifica se a posição já foi selecionada
+
+        for (i = 0; i < positions.size(); i++)
+        {
+            if (positions[i] == position)
+            {
+                repeated = true;
+            }
+        }
+
+        // Guarda somente posições diferentes
+        if (repeated == false)
+        {
+            positions.push_back(position); //
+        }
+    }
+
+    // Mistura os genes das posições selecionadas
+
+    for (i = quantity - 1; i > 0; i--)
+    {
+        // Seleciona outra posição dentro do conjunto
+        j = rand() % i;
+
+        // Troca os genes
+        temp = chromosome[positions[i]];
+
+        chromosome[positions[i]] = chromosome[positions[j]];  //Copiando o segundo gene;
+
+        chromosome[positions[j]] = temp;  //Finalizando a troca;
+    }
+}
+
+void printChromosome()
+{
+    for (i = 0; i < chromosome.size(); i++)
+    {
+        std::cout << chromosome[i] << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+int main()  // Para todas as mutações;
+{
+    srand(time(NULL)); // valor atual;
+
+    std::cout << "Antes da mutacao:" << std::endl;
+    printChromosome();
+
+    mutation_mix();
+
+    std::cout << "\nPosicoes selecionadas: ";
+
+    for (i = 0; i < positions.size(); i++)
+    {
+        std::cout << positions[i] << " ";
+    }
+
+    std::cout << "\n\nDepois da mutacao:" << std::endl;
+    printChromosome();
+
+    return 0;
+}
+
+*/
+
+/*
+// Mutação por inversão:
+
+// Variáveis globais
+int n;
+int begin_position;
+int end_position;
+int temp;
+int i;
+
+void mutation_inversion()
+{
+    // Obtém o tamanho do cromossomo
+    n = chromosome.size();
+
+    // É necessário ter pelo menos dois genes
+    if (n < 2)
+    {
+        return;
+    }
+
+    // Seleciona aleatoriamente o início do intervalo
+    begin_position = rand() % n;
+
+    // Seleciona aleatoriamente o fim do intervalo
+    end_position = rand() % n;
+
+    // As posições precisam ser diferentes
+    while (begin_position == end_position)
+    {
+        end_position = rand() % n;
+    }
+
+  
+    Se a posição inicial for maior que a final,
+    troca as duas posições.
+  
+    if (begin_position > end_position)
+    {
+        temp = begin_position;
+        begin_position = end_position;
+        end_position = temp;
+    }
+
+  
+    Inverte os genes dentro do intervalo.
+
+    O gene do início é trocado com o gene do fim.
+    Depois, as duas posições se aproximam.
+  
+    while (begin_position < end_position)
+    {
+        temp = chromosome[begin_position];
+
+        chromosome[begin_position] =
+            chromosome[end_position];
+
+        chromosome[end_position] = temp;
+
+        begin_position++;
+        end_position--;
+    }
+}
+
+void printChromosome()
+{
+    for (i = 0; i < chromosome.size(); i++)
+    {
+        std::cout << chromosome[i] << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+int main()
+{
+    // Inicializa os números aleatórios
+    srand(time(NULL));
+
+    std::cout << "Antes da mutacao:" << std::endl;
+    printChromosome();
+
+    mutation_inversion();
+
+    std::cout << "\nDepois da mutacao:" << std::endl;
+    printChromosome();
+
+    return 0;
+}
+
+
+*/
+
 
 void mutation()
 {
