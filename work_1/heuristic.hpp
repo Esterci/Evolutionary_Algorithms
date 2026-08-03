@@ -30,6 +30,8 @@ double linear_classification(int i);
 
 void take_route(solution *route);
 
+int levenshtein_distance(const int *vector1, const int *vector2);
+
 void initialize_heuristic(int run);
 
 int parent_selection(solution ranked[]);

@@ -23,6 +23,7 @@ float mutation_rate;
 float crossover_rate;
 string mutation_method;
 float select_pres;
+int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -71,6 +72,68 @@ void take_route(solution *route)
     route->tour[route->steps] = DEPOT;
     route->steps++;
   }
+}
+
+int levenshtein_distance(const int *vector1, const int *vector2)
+{
+  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    lv_distance[i] = new int[NUM_OF_CUSTOMERS + 1];
+  }
+
+  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    lv_distance[i][0] = i;
+  }
+
+  for (int j = 0; j <= NUM_OF_CUSTOMERS; j++)
+  {
+    lv_distance[0][j] = j;
+  }
+
+  for (int i = 1; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    for (int j = 1; j <= NUM_OF_CUSTOMERS; j++)
+    {
+      int substitution_cost;
+
+      if (vector1[i - 1] == vector2[j - 1])
+      {
+        substitution_cost = 0;
+      }
+      else
+      {
+        substitution_cost = 1;
+      }
+
+      int deletion =
+          lv_distance[i - 1][j] + 1;
+
+      int insertion =
+          lv_distance[i][j - 1] + 1;
+
+      int substitution =
+          lv_distance[i - 1][j - 1] + substitution_cost;
+
+      int minimum = deletion;
+
+      if (insertion < minimum)
+      {
+        minimum = insertion;
+      }
+
+      if (substitution < minimum)
+      {
+        minimum = substitution;
+      }
+
+      lv_distance[i][j] = minimum;
+    }
+  }
+
+  int result = lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
+
+  return result;
 }
 
 double linear_classification(int i)
@@ -304,7 +367,12 @@ void run_heuristic()
 /*free memory structures*/
 void free_heuristic()
 {
+  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    delete[] lv_distance[i];
+  }
 
+  delete[] lv_distance;
   delete[] best_sol->tour;
   delete[] population;
   delete[] offspring;
