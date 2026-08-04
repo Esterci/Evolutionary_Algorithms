@@ -10,6 +10,7 @@
 
 #include "EVRP.hpp"
 
+
 using namespace std;
 
 char *problem_instance; // Name of the instance
@@ -278,11 +279,8 @@ double fitness_evaluation(int *routes, int size)
 /* Outputs the routes of the solution. Taken as input           */
 /* an array of node indeces and its length                      */
 /****************************************************************/
-void print_solution(int *routes, int size, int n_pop)
+void print_solution(int *routes, int size)
 {
-
-  cout << "n_pop: " << n_pop << " - ";
-
   for (int i = 0; i < size; i++)
   {
     cout << routes[i] << " , ";

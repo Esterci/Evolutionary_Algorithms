@@ -21,10 +21,11 @@ solution *best_sol; // see heuristic.hpp for the solution structure
 solution *population;
 solution *offspring;
 
-// GA parameters
-int n_pop = 32;
-int n_offspring = 1;
-double select_pres = 2;
+int n_pop;
+float mutation_rate;
+float crossover_rate;
+char *mutation_method;
+float select_pres;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -134,7 +135,7 @@ void initialize_heuristic(int run)
     }
   }
 
-  for (i = 0; i < n_offspring; i++)
+  for (i = 0; i < 1; i++)
   {
     offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
     offspring[i].cromossome = new int[(NUM_OF_CUSTOMERS)];
@@ -529,6 +530,7 @@ void mutation()
 /*implement your heuristic in this function*/
 void run_heuristic()
 {
+
   int parent1, parent2;
 
   parent1 = parent_selection(population);
@@ -541,7 +543,6 @@ void run_heuristic()
   }
   
   crossover(parent1, parent2);
-
 
   mutation();
 
