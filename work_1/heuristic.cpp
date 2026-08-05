@@ -21,8 +21,9 @@ solution *offspring;
 int n_pop;
 float mutation_rate;
 float crossover_rate;
-char *mutation_method;
+string mutation_method;
 float select_pres;
+int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
 
 bool compare_fitness(const solution &a, const solution &b)
 {
