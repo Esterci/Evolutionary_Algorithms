@@ -6,8 +6,6 @@
 #include "heuristic.hpp"
 #include "stats.hpp"
 
-#teste ana
-
 using namespace std;
 
 /*initialiazes a run for your heuristic*/
@@ -46,7 +44,7 @@ bool termination_condition(void)
 int main(int argc, char *argv[])
 {
 
-  int run;
+  int run, generation;
 
   /*Step 1*/
   problem_instance = argv[1]; // pass the .evrp filename as an argument
@@ -96,6 +94,8 @@ int main(int argc, char *argv[])
   /*Step 2*/
   open_stats(); // open text files to store the best values from the 20 runs stats.h
 
+  open_curves();
+
   for (run = 1; run <= MAX_TRIALS; run++)
   {
     /*Step 3*/
@@ -104,17 +104,22 @@ int main(int argc, char *argv[])
     // Initialize your heuristic here
     initialize_heuristic(run); // heuristic.h
 
+    generation = 1;
+
     /*Step 4*/
     while (!termination_condition())
     {
       // Execute your heuristic
       run_heuristic(); // heuristic.h
+
+      write_curves(run, generation, fitness_mean, fitness_std);
+
+      generation++;
     }
 
     // print_solution(best_sol->tour, best_sol->steps);
 
     write_solution(best_sol->tour, best_sol->steps);
-
 
     // check_solution(best_sol->tour,best_sol->steps);
 
@@ -128,6 +133,8 @@ int main(int argc, char *argv[])
 
   /*Step 6*/
   close_stats(); // close text files to calculate the mean result from the 20 runs stats.h
+
+  close_curves();
 
   // free memory
   free_stats();
