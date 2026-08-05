@@ -162,7 +162,7 @@ void initialize_heuristic(int run)
     }
 
     // randomly change indexes of obiects
-    for (j = 0; j <= NUM_OF_CUSTOMERS; j++) // Tem como fixarmos e salvarmos a seed?
+    for (j = 0; j < NUM_OF_CUSTOMERS; j++) // Tem como fixarmos e salvarmos a seed?
     {
       object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
       help = population[i].cromossome[j];
@@ -542,7 +542,8 @@ void run_heuristic()
   {
     crossover(parent1, parent2);
 
-    if(mutation_rand <= mutation_rate){
+    if (mutation_rand <= mutation_rate)
+    {
       if (mutation_method == "ins")
       {
         mutation_insertion();
@@ -561,10 +562,10 @@ void run_heuristic()
       }
     }
 
+    take_route(&offspring[0]);
+    
     change_pop();
   }
-  
-  take_route(&offspring[0]);
 
   get_fitness_mean();
 

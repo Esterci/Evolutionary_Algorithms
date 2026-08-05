@@ -22,7 +22,7 @@ stats.o: stats.cpp
 	$(CXX) $(CXXFLAGS) -c stats.cpp -o stats.o
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) stats/*.txt evolution_curves/*.csv
 
 rebuild: clean all
 

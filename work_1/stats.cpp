@@ -154,9 +154,9 @@ void write_curves(int seed, int it, double fit_mean, double fit_std)
   fprintf(log_curves, "%d, %d, %f, %f\n", seed, it, fit_mean, fit_std);
 }
 
-void close_stats(void)
+void close_stats()
 {
-  int i, j;
+  int i;
   double perf_mean_value, perf_stdev_value;
 
   // For statistics
@@ -181,7 +181,7 @@ void close_stats(void)
   fclose(log_performance);
 }
 
-void close_curves(void)
+void close_curves()
 {
   fclose(log_curves);
 }
