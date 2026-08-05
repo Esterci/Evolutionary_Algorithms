@@ -76,26 +76,29 @@ void take_route(solution *route)
 
 int levenshtein_distance(const int *vector1, const int *vector2)
 {
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  int i, j, deletion, insertion,
+      substitution, minimum, substitution_cost;
+
+  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
   {
     lv_distance[i] = new int[NUM_OF_CUSTOMERS + 1];
   }
 
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
   {
     lv_distance[i][0] = i;
   }
 
-  for (int j = 0; j <= NUM_OF_CUSTOMERS; j++)
+  for (j = 0; j <= NUM_OF_CUSTOMERS; j++)
   {
     lv_distance[0][j] = j;
   }
 
-  for (int i = 1; i <= NUM_OF_CUSTOMERS; i++)
+  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
   {
-    for (int j = 1; j <= NUM_OF_CUSTOMERS; j++)
+    for (j = 1; j <= NUM_OF_CUSTOMERS; j++)
     {
-      int substitution_cost;
+      substitution_cost;
 
       if (vector1[i - 1] == vector2[j - 1])
       {
@@ -106,16 +109,16 @@ int levenshtein_distance(const int *vector1, const int *vector2)
         substitution_cost = 1;
       }
 
-      int deletion =
+      deletion =
           lv_distance[i - 1][j] + 1;
 
-      int insertion =
+      insertion =
           lv_distance[i][j - 1] + 1;
 
-      int substitution =
+      substitution =
           lv_distance[i - 1][j - 1] + substitution_cost;
 
-      int minimum = deletion;
+      minimum = deletion;
 
       if (insertion < minimum)
       {
@@ -131,9 +134,20 @@ int levenshtein_distance(const int *vector1, const int *vector2)
     }
   }
 
-  int result = lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
+  return lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
+}
 
-  return result;
+int get_levenshtein_score()
+{
+  int i, j;
+
+  for (i = 0; i < n_pop; i++)
+  {
+    for (j = 0; j < n_pop; j++)
+    {
+      
+    }
+  }
 }
 
 double linear_classification(int i)

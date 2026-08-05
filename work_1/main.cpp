@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
          << " <metodo_de_mutacao>" << endl;
 
     cerr << "Métodos disponíveis:" << endl;
+    cerr << "  swp - mutação por troca" << endl;
     cerr << "  ins - mutação por inserção" << endl;
     cerr << "  mix - mutação por mistura" << endl;
     cerr << "  inv - mutação por inversão" << endl;
@@ -67,7 +68,8 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  if (mutation_method != "ins" &&
+  if (mutation_method != "swp" &&
+      mutation_method != "ins" &&
       mutation_method != "mix" &&
       mutation_method != "inv")
   {
@@ -89,10 +91,9 @@ int main(int argc, char *argv[])
 
   read_problem(problem_instance); // Read EVRP from file from EVRP.h
 
-  
   /*Step 2*/
   open_stats(); // open text files to store the best values from the 20 runs stats.h
-  
+
   for (run = 1; run <= MAX_TRIALS; run++)
   {
     /*Step 3*/
