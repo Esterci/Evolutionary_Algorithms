@@ -6,8 +6,6 @@
 #include "heuristic.hpp"
 #include "stats.hpp"
 
-#teste ana
-
 using namespace std;
 
 /*initialiazes a run for your heuristic*/
