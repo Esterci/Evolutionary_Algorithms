@@ -21,9 +21,8 @@ solution *offspring;
 int n_pop;
 float mutation_rate;
 float crossover_rate;
-string mutation_method;
+char *mutation_method;
 float select_pres;
-int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -262,12 +261,14 @@ void crossover(int p1, int p2)
     offspring[0].cromossome[i] = -1;
   }
 
+  
   // Copia o segmento do primeiro pai.
   for (int i = cut1; i <= cut2; i++)
   {
     offspring[0].cromossome[i] = population[p1].cromossome[i];
   }
-
+  
+  
   // Preenche as posições externas usando o segundo pai.
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
@@ -275,7 +276,7 @@ void crossover(int p1, int p2)
     {
       int value = population[p2].cromossome[i];
       bool conflict = true;
-
+      
       while (conflict)
       {
         conflict = false;
@@ -301,9 +302,10 @@ void crossover(int p1, int p2)
 }
 
 void change_pop()
-{
+{  
   // Test fitness of offspring
   offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
+
 
   if (offspring[0].tour_length < best_sol->tour_length)
   {
@@ -359,21 +361,10 @@ void run_heuristic()
   {
     parent2 = parent_selection(population);
   }
-
+  
   crossover(parent1, parent2);
 
-  if (mutation_method == "ins")
-  {
-    mutation();
-  }
-  else if (mutation_method == "mix")
-  {
-    mutation();
-  }
-  else
-  {
-    mutation();
-  }
+  mutation();
 
   change_pop();
 }
@@ -381,12 +372,7 @@ void run_heuristic()
 /*free memory structures*/
 void free_heuristic()
 {
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    delete[] lv_distance[i];
-  }
 
-  delete[] lv_distance;
   delete[] best_sol->tour;
   delete[] population;
   delete[] offspring;

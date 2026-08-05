@@ -1,4 +1,4 @@
-#include <string>
+
 
 struct solution
 {
@@ -21,7 +21,7 @@ extern solution *best_sol;
 extern int n_pop;
 extern float mutation_rate;
 extern float crossover_rate;
-extern std::string mutation_method;
+extern char *mutation_method;
 extern float select_pres;
 
 bool compare_fitness(const solution &a, const solution &b);
@@ -29,8 +29,6 @@ bool compare_fitness(const solution &a, const solution &b);
 double linear_classification(int i);
 
 void take_route(solution *route);
-
-int levenshtein_distance(const int *vector1, const int *vector2);
 
 void initialize_heuristic(int run);
 
