@@ -8,10 +8,7 @@
 #include <fstream>
 #include <limits.h>
 #include <algorithm>
-#include <vector>
-#include <random>
-#include <cstdlib>
-#include <ctime>
+
 #include "heuristic.hpp"
 #include "EVRP.hpp"
 
@@ -24,9 +21,8 @@ solution *offspring;
 int n_pop;
 float mutation_rate;
 float crossover_rate;
-string mutation_method;
+char *mutation_method;
 float select_pres;
-int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -75,68 +71,6 @@ void take_route(solution *route)
     route->tour[route->steps] = DEPOT;
     route->steps++;
   }
-}
-
-int levenshtein_distance(const int *vector1, const int *vector2)
-{
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    lv_distance[i] = new int[NUM_OF_CUSTOMERS + 1];
-  }
-
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    lv_distance[i][0] = i;
-  }
-
-  for (int j = 0; j <= NUM_OF_CUSTOMERS; j++)
-  {
-    lv_distance[0][j] = j;
-  }
-
-  for (int i = 1; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    for (int j = 1; j <= NUM_OF_CUSTOMERS; j++)
-    {
-      int substitution_cost;
-
-      if (vector1[i - 1] == vector2[j - 1])
-      {
-        substitution_cost = 0;
-      }
-      else
-      {
-        substitution_cost = 1;
-      }
-
-      int deletion =
-          lv_distance[i - 1][j] + 1;
-
-      int insertion =
-          lv_distance[i][j - 1] + 1;
-
-      int substitution =
-          lv_distance[i - 1][j - 1] + substitution_cost;
-
-      int minimum = deletion;
-
-      if (insertion < minimum)
-      {
-        minimum = insertion;
-      }
-
-      if (substitution < minimum)
-      {
-        minimum = substitution;
-      }
-
-      lv_distance[i][j] = minimum;
-    }
-  }
-
-  int result = lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
-
-  return result;
 }
 
 double linear_classification(int i)
@@ -251,12 +185,14 @@ void crossover(int p1, int p2)
     offspring[0].cromossome[i] = -1;
   }
 
+  
   // Copia o segmento do primeiro pai.
   for (int i = cut1; i <= cut2; i++)
   {
     offspring[0].cromossome[i] = population[p1].cromossome[i];
   }
-
+  
+  
   // Preenche as posições externas usando o segundo pai.
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
@@ -264,7 +200,7 @@ void crossover(int p1, int p2)
     {
       int value = population[p2].cromossome[i];
       bool conflict = true;
-
+      
       while (conflict)
       {
         conflict = false;
@@ -290,9 +226,10 @@ void crossover(int p1, int p2)
 }
 
 void change_pop()
-{
+{  
   // Test fitness of offspring
   offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
+
 
   if (offspring[0].tour_length < best_sol->tour_length)
   {
@@ -313,259 +250,6 @@ void change_pop()
 
   population[0].tour_length = offspring[0].tour_length;
 }
-
-/*
-Mutação por Inserção:
-
-int n;
-int origin;
-int destination;
-int gene;
-int i;
-
-void mutation_insertion()
-{
-  n = tamanho do cromossomo
-
-  if (n < 2)
-  {
-    return;
-  }
-// Seleciona aleatoriamento posição do gene;
-
-  origin = rand () % n
-
-// Seleciona nova posição;
-
-destination = rand () % n;
-
-// Posições precisam ser diferentes;
-
-while (destination == origem)
-{
-  destination = rand() % n;
-}
-  // Guarda gene sorteado;
-  gene = chromossome[origin];
-
-  if (origin < destination)  // Desloca para esquerda;
-  {
-    for (i = origin, i < destination; i++)
-  {
-    chromossome[i]=chromossome[i+1];
-    }
-  }
-  else       // desloca para direita;
-  {
-    for (i = origin; i>destination; i--)
-    {
-      chromossome[i] = chromossome[i-1];
-    }
-  }
-    // Insere gene na nova posição sorteada;
-      chromossome[destination] = gene;
-}
-
-*/
-
-/*
-// Mutação por mistura:
-
-// Variáveis globais
-std::vector<int> chromosome = {};
-std::vector<int> positions;
-
-int n;    // armarzena o tamanho do cromossomo.
-int quantity; // Armazena quantas posições serão escolhidas para a mistura.
-int position; // Guarda temporariamente uma posição sorteada.
-int i;        
-int j;
-int temp;
-
-bool repeated;  //se uma posição sorteada já está no vetor positions.
-
-
-void mutation_mix()
-{
-    n = chromosome.size();
-
-    if (n < 2)
-    {
-        return;
-    }
-
-    positions.clear();      // Limpa as posições de uma mutação anterior;
-
-    // Seleciona aleatoriamente quantos genes serão misturados - 
-    quantity = 2 + rand() % (n - 1);    // Seleciona 2 até 6 gene (?) conferir;
-
-    // Seleciona posições aleatórias
-    while (positions.size() < quantity)
-    {
-        position = rand() % n;  //sorteia a posição;
-
-        repeated = false;
-
-        // Verifica se a posição já foi selecionada
-
-        for (i = 0; i < positions.size(); i++)
-        {
-            if (positions[i] == position)
-            {
-                repeated = true;
-            }
-        }
-
-        // Guarda somente posições diferentes
-        if (repeated == false)
-        {
-            positions.push_back(position); //
-        }
-    }
-
-    // Mistura os genes das posições selecionadas
-
-    for (i = quantity - 1; i > 0; i--)
-    {
-        // Seleciona outra posição dentro do conjunto
-        j = rand() % i;
-
-        // Troca os genes
-        temp = chromosome[positions[i]];
-
-        chromosome[positions[i]] = chromosome[positions[j]];  //Copiando o segundo gene;
-
-        chromosome[positions[j]] = temp;  //Finalizando a troca;
-    }
-}
-
-void printChromosome()
-{
-    for (i = 0; i < chromosome.size(); i++)
-    {
-        std::cout << chromosome[i] << " ";
-    }
-
-    std::cout << std::endl;
-}
-
-int main()  // Para todas as mutações;
-{
-    srand(time(NULL)); // valor atual;
-
-    std::cout << "Antes da mutacao:" << std::endl;
-    printChromosome();
-
-    mutation_mix();
-
-    std::cout << "\nPosicoes selecionadas: ";
-
-    for (i = 0; i < positions.size(); i++)
-    {
-        std::cout << positions[i] << " ";
-    }
-
-    std::cout << "\n\nDepois da mutacao:" << std::endl;
-    printChromosome();
-
-    return 0;
-}
-
-*/
-
-/*
-// Mutação por inversão:
-
-// Variáveis globais
-int n;
-int begin_position;
-int end_position;
-int temp;
-int i;
-
-void mutation_inversion()
-{
-    // Obtém o tamanho do cromossomo
-    n = chromosome.size();
-
-    // É necessário ter pelo menos dois genes
-    if (n < 2)
-    {
-        return;
-    }
-
-    // Seleciona aleatoriamente o início do intervalo
-    begin_position = rand() % n;
-
-    // Seleciona aleatoriamente o fim do intervalo
-    end_position = rand() % n;
-
-    // As posições precisam ser diferentes
-    while (begin_position == end_position)
-    {
-        end_position = rand() % n;
-    }
-
-  
-    Se a posição inicial for maior que a final,
-    troca as duas posições.
-  
-    if (begin_position > end_position)
-    {
-        temp = begin_position;
-        begin_position = end_position;
-        end_position = temp;
-    }
-
-  
-    Inverte os genes dentro do intervalo.
-
-    O gene do início é trocado com o gene do fim.
-    Depois, as duas posições se aproximam.
-  
-    while (begin_position < end_position)
-    {
-        temp = chromosome[begin_position];
-
-        chromosome[begin_position] =
-            chromosome[end_position];
-
-        chromosome[end_position] = temp;
-
-        begin_position++;
-        end_position--;
-    }
-}
-
-void printChromosome()
-{
-    for (i = 0; i < chromosome.size(); i++)
-    {
-        std::cout << chromosome[i] << " ";
-    }
-
-    std::cout << std::endl;
-}
-
-int main()
-{
-    // Inicializa os números aleatórios
-    srand(time(NULL));
-
-    std::cout << "Antes da mutacao:" << std::endl;
-    printChromosome();
-
-    mutation_inversion();
-
-    std::cout << "\nDepois da mutacao:" << std::endl;
-    printChromosome();
-
-    return 0;
-}
-
-
-*/
-
 
 void mutation()
 {
@@ -601,21 +285,10 @@ void run_heuristic()
   {
     parent2 = parent_selection(population);
   }
-
+  
   crossover(parent1, parent2);
 
-  if (mutation_method == "ins")
-  {
-    mutation();
-  }
-  else if (mutation_method == "mix")
-  {
-    mutation();
-  }
-  else
-  {
-    mutation();
-  }
+  mutation();
 
   change_pop();
 }
@@ -623,12 +296,7 @@ void run_heuristic()
 /*free memory structures*/
 void free_heuristic()
 {
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    delete[] lv_distance[i];
-  }
 
-  delete[] lv_distance;
   delete[] best_sol->tour;
   delete[] population;
   delete[] offspring;

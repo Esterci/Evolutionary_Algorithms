@@ -11,7 +11,6 @@
 
 #include "EVRP.hpp"
 #include "stats.hpp"
-#include "heuristic.hpp"
 
 using namespace std;
 
@@ -35,14 +34,8 @@ void open_stats(void)
 
   // initialize and open output files
   perf_filename = new char[CHAR_LEN];
-  sprintf(perf_filename, "stats/pi-%s--mtr-%f--cor-%f--mtm-%s--stp-%f--pop-%d.txt",
-          problem_instance,
-          mutation_rate,
-          crossover_rate,
-          mutation_method.c_str(),
-          select_pres,
-          n_pop);
-
+  sprintf(perf_filename, "stats/stats.%s.txt",
+          problem_instance);
   // for performance
   if ((log_performance = fopen(perf_filename, "a")) == NULL)
   {
@@ -118,7 +111,7 @@ double worst_of_vector(double *values, int l)
 void write_solution(int *routes, int size)
 {
   fprintf(log_performance, "route: ");
-
+  
   for (int i = 0; i < size; i++)
   {
     fprintf(log_performance, "%d, ", routes[i]);
