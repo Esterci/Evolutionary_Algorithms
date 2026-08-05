@@ -19,12 +19,17 @@ solution *best_sol; // see heuristic.hpp for the solution structure
 solution *population;
 solution *offspring;
 
+// Global variables
 int n_pop;
 float mutation_rate;
 float crossover_rate;
 string mutation_method;
 float select_pres;
-int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
+double fitness_mean;
+double fitness_std;
+
+// Context variables
+int **lv_distance;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -34,23 +39,8 @@ bool compare_fitness(const solution &a, const solution &b)
 void take_route(solution *route)
 {
   /*generate a random solution for the random heuristic*/
-  int i, help, object, tot_assigned = 0;
+  int i;
   int to;
-
-  // set indexes of objects
-  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    route->cromossome[i - 1] = i;
-  }
-  // randomly change indexes of objects
-  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    object = (int)((rand() / (RAND_MAX + 1.0)) * (double)(NUM_OF_CUSTOMERS - tot_assigned));
-    help = route->cromossome[i];
-    route->cromossome[i] = route->cromossome[i + object];
-    route->cromossome[i + object] = help;
-    tot_assigned++;
-  }
 
   route->steps = 1;
   route->tour_length = INT_MAX;
@@ -75,84 +65,57 @@ void take_route(solution *route)
   }
 }
 
-int levenshtein_distance(const int *vector1, const int *vector2)
+int hamming_distance(const int *vector1, const int *vector2, int dist_limit)
 {
-  int i, j, deletion, insertion,
-      substitution, minimum, substitution_cost;
+  int dist = 0;
 
-  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-    lv_distance[i] = new int[NUM_OF_CUSTOMERS + 1];
-  }
-
-  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    lv_distance[i][0] = i;
-  }
-
-  for (j = 0; j <= NUM_OF_CUSTOMERS; j++)
-  {
-    lv_distance[0][j] = j;
-  }
-
-  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    for (j = 1; j <= NUM_OF_CUSTOMERS; j++)
+    if (vector1[i] != vector2[i])
     {
-      substitution_cost;
+      dist++;
 
-      if (vector1[i - 1] == vector2[j - 1])
+      /*
+       * Se a distância já não pode superar a melhor
+       * encontrada anteriormente, encerra a comparação.
+       */
+      if (dist >= dist_limit)
       {
-        substitution_cost = 0;
+        return dist;
       }
-      else
-      {
-        substitution_cost = 1;
-      }
-
-      deletion =
-          lv_distance[i - 1][j] + 1;
-
-      insertion =
-          lv_distance[i][j - 1] + 1;
-
-      substitution =
-          lv_distance[i - 1][j - 1] + substitution_cost;
-
-      minimum = deletion;
-
-      if (insertion < minimum)
-      {
-        minimum = insertion;
-      }
-
-      if (substitution < minimum)
-      {
-        minimum = substitution;
-      }
-
-      lv_distance[i][j] = minimum;
     }
   }
 
-  return lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
-}
-
-int get_levenshtein_score()
-{
-  int i, j;
-
-  for (i = 0; i < n_pop; i++)
-  {
-    for (j = 0; j < n_pop; j++)
-    {
-    }
-  }
+  return dist;
 }
 
 double linear_classification(int i)
 {
   return (2 - select_pres) / n_pop + 2 * i * (select_pres - 1) / (n_pop * (n_pop - 1));
+}
+
+void get_fitness_mean()
+{
+  int i, total_fitness = 0;
+
+  for (i = 0; i < n_pop; i++)
+  {
+    total_fitness += population[i].tour_length;
+  }
+
+  fitness_mean = total_fitness / n_pop;
+}
+
+void get_fitness_std()
+{
+  int i, total_fitness = 0;
+
+  for (i = 0; i < n_pop; i++)
+  {
+    total_fitness += pow(population[i].tour_length - fitness_mean, 2);
+  }
+
+  fitness_std = sqrt(total_fitness / n_pop);
 }
 
 /*initialize the structure of your heuristic in this function*/
@@ -161,9 +124,18 @@ void initialize_heuristic(int run)
   /*generate a random solution for the random heuristic*/
   int i, j, help, object, tot_assigned;
 
+  // Allocate the Levenshtein distance matrix only once.
+  lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
+
+  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    lv_distance[i] =
+        new int[NUM_OF_CUSTOMERS + 1];
+  }
+
   // Aloca um vetor com n_pop soluções
   population = new solution[n_pop];
-  offspring = new solution[n_pop];
+  offspring = new solution[1];
 
   for (i = 0; i < n_pop; i++)
   {
@@ -226,6 +198,8 @@ int parent_selection(solution ranked[])
   // Ordena do menor fitness para o maior.
   sort(ranked, ranked + n_pop, compare_fitness);
 
+  best_sol = &population[n_pop - 1];
+
   // O melhor recebe o maior peso.
   for (int i = 0; i < n_pop; i++)
   {
@@ -248,7 +222,7 @@ int parent_selection(solution ranked[])
     }
   }
 
-  return NUM_OF_CUSTOMERS - 1;
+  return n_pop - 1;
 }
 
 void crossover(int p1, int p2)
@@ -296,33 +270,89 @@ void crossover(int p1, int p2)
       offspring[0].cromossome[i] = value;
     }
   }
+}
 
-  take_route(&offspring[0]);
+void copy_solution(solution &destination, const solution &source)
+{
+  // Copy the chromosome.
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    destination.cromossome[i] = source.cromossome[i];
+  }
+
+  // Copy the number of positions in the complete route.
+  destination.steps = source.steps;
+
+  // Copy the complete route.
+  for (int i = 0; i < source.steps; i++)
+  {
+    destination.tour[i] = source.tour[i];
+  }
+
+  // Copy the fitness value.
+  destination.tour_length = source.tour_length;
 }
 
 void change_pop()
 {
-  // Test fitness of offspring
-  offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
+  int dist;
+  int dist_min = INT_MAX;
+  int chg_index = -1;
 
+  /*
+   * Evaluate the offspring using its complete route.
+   */
+
+  offspring[0].tour_length =
+      fitness_evaluation(
+          offspring[0].tour,
+          offspring[0].steps);
+
+  /*
+   * Search for the individual whose chromosome is
+   * the most similar to the offspring chromosome.
+   */
+  for (int i = 0; i < n_pop; i++)
+  {
+    dist = hamming_distance(
+        population[i].cromossome,
+        offspring[0].cromossome,
+        dist_min);
+
+    if (dist < dist_min)
+    {
+      dist_min = dist;
+      chg_index = i;
+    }
+  }
+
+  /*
+   * Deterministic crowding:
+   * the offspring competes against the most similar individual.
+   * The replacement occurs only if the offspring is better.
+   */
+  if (offspring[0].tour_length <
+      population[chg_index].tour_length)
+  {
+
+    copy_solution(
+        population[chg_index],
+        offspring[0]);
+  }
+
+  /*
+   * Update the global best solution.
+   *
+   * best_sol must point to an independently allocated solution.
+   * Do not assign best_sol = &offspring[0], because offspring[0]
+   * will be overwritten in the next iteration.
+   */
   if (offspring[0].tour_length < best_sol->tour_length)
   {
-    best_sol = &offspring[0];
+    copy_solution(
+        *best_sol,
+        offspring[0]);
   }
-
-  // The survival of the fittest
-  // replace less fit individual by the offspring
-  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
-  {
-    population[0].cromossome[i] = offspring[0].cromossome[i];
-  }
-
-  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
-  {
-    population[0].cromossome[i] = offspring[0].cromossome[i];
-  }
-
-  population[0].tour_length = offspring[0].tour_length;
 }
 
 // Mutação por inserção
@@ -533,18 +563,68 @@ void run_heuristic()
 
     change_pop();
   }
+  
+  take_route(&offspring[0]);
+
+  get_fitness_mean();
+
+  get_fitness_std();
 }
 
 /*free memory structures*/
 void free_heuristic()
 {
-  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  /*
+   * Free the internal arrays of every population individual.
+   */
+  if (population != nullptr)
   {
-    delete[] lv_distance[i];
+    for (int i = 0; i < n_pop; i++)
+    {
+      delete[] population[i].tour;
+      delete[] population[i].cromossome;
+
+      population[i].tour = nullptr;
+      population[i].cromossome = nullptr;
+    }
+
+    delete[] population;
+    population = nullptr;
   }
 
-  delete[] lv_distance;
-  delete[] best_sol->tour;
-  delete[] population;
-  delete[] offspring;
+  /*
+   * Only offspring[0] was allocated internally.
+   */
+  if (offspring != nullptr)
+  {
+    delete[] offspring[0].tour;
+    delete[] offspring[0].cromossome;
+
+    offspring[0].tour = nullptr;
+    offspring[0].cromossome = nullptr;
+
+    delete[] offspring;
+    offspring = nullptr;
+  }
+
+  /*
+   * Free every row of the Levenshtein matrix.
+   */
+  if (lv_distance != nullptr)
+  {
+    for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+    {
+      delete[] lv_distance[i];
+      lv_distance[i] = nullptr;
+    }
+
+    delete[] lv_distance;
+    lv_distance = nullptr;
+  }
+
+  /*
+   * best_sol points to an element inside population,
+   * so it must not be deleted separately.
+   */
+  best_sol = nullptr;
 }
