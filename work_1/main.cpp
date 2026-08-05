@@ -54,6 +54,31 @@ int main(int argc, char *argv[])
   select_pres = stof(argv[5]);
   n_pop = stoi(argv[6]);
 
+  if (argc < 2)
+  {
+    cerr << "Uso: " << argv[0]
+         << " <metodo_de_mutacao>" << endl;
+
+    cerr << "Métodos disponíveis:" << endl;
+    cerr << "  swp - mutação por troca" << endl;
+    cerr << "  ins - mutação por inserção" << endl;
+    cerr << "  mix - mutação por mistura" << endl;
+    cerr << "  inv - mutação por inversão" << endl;
+
+    return 1;
+  }
+
+  if (mutation_method != "swp" &&
+      mutation_method != "ins" &&
+      mutation_method != "mix" &&
+      mutation_method != "inv")
+  {
+    cerr << "Mutation method not implemented: "
+         << mutation_method << endl;
+
+    return 1;
+  }
+
   cout << "===== SELECTED PARAMETERS =====" << endl;
   cout << "Instance file:      " << problem_instance << endl;
   cout << "Mutation rate:      " << mutation_rate << endl;
