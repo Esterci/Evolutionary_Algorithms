@@ -18,8 +18,10 @@ using namespace std;
 // Used to output offline performance and population diversity
 
 FILE *log_performance;
+FILE *log_curves;
 // output files
 char *perf_filename;
+char *curves_filename;
 
 double *perf_of_trials;
 
@@ -48,6 +50,28 @@ void open_stats(void)
     exit(2);
   }
   // initialize and open output files
+}
+
+void open_curves(void)
+{
+  // initialize and open output files
+  curves_filename = new char[CHAR_LEN];
+  sprintf(curves_filename, "evolution_curves/pi-%s--mtr-%f--cor-%f--mtm-%s--stp-%f--pop-%d.csv",
+          problem_instance,
+          mutation_rate,
+          crossover_rate,
+          mutation_method.c_str(),
+          select_pres,
+          n_pop);
+
+  // for curves
+  if ((log_curves = fopen(curves_filename, "a")) == NULL)
+  {
+    exit(2);
+  }
+  // initialize and open output files
+
+  fprintf(log_curves, "seed, generation, fit_mean, fit_std\n");
 }
 
 void get_mean(int r, double value)
@@ -125,6 +149,11 @@ void write_solution(int *routes, int size)
   fprintf(log_performance, "\n");
 }
 
+void write_curves(int seed, int it, double fit_mean, double fit_std)
+{
+  fprintf(log_curves, "%d, %d, %f, %f\n", seed, it, fit_mean, fit_std);
+}
+
 void close_stats(void)
 {
   int i, j;
@@ -150,6 +179,11 @@ void close_stats(void)
   fprintf(log_performance, "\n");
 
   fclose(log_performance);
+}
+
+void close_curves(void)
+{
+  fclose(log_curves);
 }
 
 void free_stats()

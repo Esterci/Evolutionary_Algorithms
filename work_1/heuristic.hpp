@@ -23,16 +23,20 @@ extern float mutation_rate;
 extern float crossover_rate;
 extern std::string mutation_method;
 extern float select_pres;
+extern double fitness_mean;
+extern double fitness_std;
 
 bool compare_fitness(const solution &a, const solution &b);
 
 double linear_classification(int i);
 
+void get_fitness_mean();
+
+void get_fitness_std();
+
 void take_route(solution *route);
 
-int levenshtein_distance(const int *vector1, const int *vector2);
-
-int get_levenshtein_score();
+int hamming_distance(const int *vector1, const int *vector2, int dist_limit);
 
 void initialize_heuristic(int run);
 

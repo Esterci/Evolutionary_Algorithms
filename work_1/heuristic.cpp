@@ -24,6 +24,8 @@ float mutation_rate;
 float crossover_rate;
 string mutation_method;
 float select_pres;
+double fitness_mean;
+double fitness_std;
 
 // Context variables
 int **lv_distance;
@@ -36,7 +38,7 @@ bool compare_fitness(const solution &a, const solution &b)
 void take_route(solution *route)
 {
   /*generate a random solution for the random heuristic*/
-  int i, help, object, tot_assigned = 0;
+  int i;
   int to;
 
   route->steps = 1;
@@ -62,134 +64,57 @@ void take_route(solution *route)
   }
 }
 
-int levenshtein_distance(const int *vector1, const int *vector2)
+int hamming_distance(const int *vector1, const int *vector2, int dist_limit)
 {
-  int i, j;
-  int deletion;
-  int insertion;
-  int substitution;
-  int minimum;
-  int substitution_cost;
+  int dist = 0;
 
-  /*
-   * The matrix was allocated once in initialize_heuristic().
-   * This function only resets and reuses its values.
-   */
-
-  // Initialize the first column.
-  for (i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
-    lv_distance[i][0] = i;
-  }
-
-  // Initialize the first row.
-  for (j = 0; j <= NUM_OF_CUSTOMERS; j++)
-  {
-    lv_distance[0][j] = j;
-  }
-
-  // Fill the dynamic programming matrix.
-  for (i = 1; i <= NUM_OF_CUSTOMERS; i++)
-  {
-    for (j = 1; j <= NUM_OF_CUSTOMERS; j++)
+    if (vector1[i] != vector2[i])
     {
-      if (vector1[i - 1] == vector2[j - 1])
+      dist++;
+
+      /*
+       * Se a distância já não pode superar a melhor
+       * encontrada anteriormente, encerra a comparação.
+       */
+      if (dist >= dist_limit)
       {
-        substitution_cost = 0;
+        return dist;
       }
-      else
-      {
-        substitution_cost = 1;
-      }
-
-      deletion =
-          lv_distance[i - 1][j] + 1;
-
-      insertion =
-          lv_distance[i][j - 1] + 1;
-
-      substitution =
-          lv_distance[i - 1][j - 1] + substitution_cost;
-
-      minimum = deletion;
-
-      if (insertion < minimum)
-      {
-        minimum = insertion;
-      }
-
-      if (substitution < minimum)
-      {
-        minimum = substitution;
-      }
-
-      lv_distance[i][j] = minimum;
     }
   }
 
-  return lv_distance[NUM_OF_CUSTOMERS][NUM_OF_CUSTOMERS];
-}
-
-int get_levenshtein_score()
-{
-  int i, j;
-  int dist;
-
-  // Sum of the distances in the lower triangular part
-  // of the symmetric distance matrix.
-  long long sum = 0;
-
-  /*
-   * The distance matrix is symmetric:
-   *
-   *     d(i, j) = d(j, i)
-   *
-   * Therefore, only the lower triangular part is calculated.
-   * The main diagonal is ignored because d(i, i) = 0.
-   */
-  for (i = 1; i < n_pop; i++)
-  {
-
-    /*
-     * Compare individual i only with the previous individuals:
-     *
-     * i = 1 -> j = 0
-     * i = 2 -> j = 0, 1
-     * i = 3 -> j = 0, 1, 2
-     *
-     * This corresponds to the lower triangular part
-     * of the distance matrix.
-     */
-    for (j = 0; j < i; j++)
-    {
-
-      // Calculate the Levenshtein distance between
-      // the chromosomes of individuals i and j.
-      dist = levenshtein_distance(
-          population[i].cromossome,
-          population[j].cromossome);
-
-      // Add the distance only once because only one
-      // triangular part of the matrix is calculated.
-      sum += dist;
-    }
-  }
-
-  /*
-   * The lower triangular part contains each pair only once.
-   * Multiplying by two reconstructs the sum of both triangular
-   * parts of the symmetric matrix.
-   *
-   * Dividing by n_pop produces the average accumulated
-   * distance associated with each individual.
-   */
-
-  return static_cast<int>(sum * 2 / n_pop);
+  return dist;
 }
 
 double linear_classification(int i)
 {
   return (2 - select_pres) / n_pop + 2 * i * (select_pres - 1) / (n_pop * (n_pop - 1));
+}
+
+void get_fitness_mean()
+{
+  int i, total_fitness = 0;
+
+  for (i = 0; i < n_pop; i++)
+  {
+    total_fitness += population[i].tour_length;
+  }
+
+  fitness_mean = total_fitness / n_pop;
+}
+
+void get_fitness_std()
+{
+  int i, total_fitness = 0;
+
+  for (i = 0; i < n_pop; i++)
+  {
+    total_fitness += pow(population[i].tour_length - fitness_mean, 2);
+  }
+
+  fitness_std = sqrt(total_fitness / n_pop);
 }
 
 /*initialize the structure of your heuristic in this function*/
@@ -255,8 +180,6 @@ void initialize_heuristic(int run)
     }
   }
 
-  get_levenshtein_score();
-
   for (i = 0; i < 1; i++)
   {
     offspring[i].tour = new int[NUM_OF_CUSTOMERS + 1000];
@@ -273,6 +196,8 @@ int parent_selection(solution ranked[])
 
   // Ordena do menor fitness para o maior.
   sort(ranked, ranked + n_pop, compare_fitness);
+
+  best_sol = &population[n_pop - 1];
 
   // O melhor recebe o maior peso.
   for (int i = 0; i < n_pop; i++)
@@ -296,7 +221,7 @@ int parent_selection(solution ranked[])
     }
   }
 
-  return NUM_OF_CUSTOMERS - 1;
+  return n_pop - 1;
 }
 
 void crossover(int p1, int p2)
@@ -388,9 +313,10 @@ void change_pop()
    */
   for (int i = 0; i < n_pop; i++)
   {
-    dist = levenshtein_distance(
+    dist = hamming_distance(
         population[i].cromossome,
-        offspring[0].cromossome);
+        offspring[0].cromossome,
+        dist_min);
 
     if (dist < dist_min)
     {
@@ -470,6 +396,10 @@ void run_heuristic()
   take_route(&offspring[0]);
 
   change_pop();
+
+  get_fitness_mean();
+
+  get_fitness_std();
 }
 
 /*free memory structures*/
