@@ -8,6 +8,7 @@
 #include <fstream>
 #include <limits.h>
 #include <algorithm>
+#include <vector>
 
 #include "heuristic.hpp"
 #include "EVRP.hpp"
@@ -24,6 +25,7 @@ float crossover_rate;
 string mutation_method;
 float select_pres;
 int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
+
 
 bool compare_fitness(const solution &a, const solution &b)
 {
@@ -328,7 +330,57 @@ void change_pop()
   population[0].tour_length = offspring[0].tour_length;
 }
 
-void mutation()
+// Mutação por inserção
+
+void mutation_insertion()
+{
+    int n = NUM_OF_CUSTOMERS;
+
+    if (n < 2)
+    {
+        return;
+    }
+
+    int *chromosome = offspring[0].cromossome;
+
+    // Seleciona a posição original
+    int origin = rand() % n;
+
+    // Seleciona a nova posição
+    int destination = rand() % n;
+
+    while (destination == origin)
+    {
+        destination = rand() % n;
+    }
+
+    // Guarda o gene que será deslocado
+    int gene = chromosome[origin];
+
+    if (origin < destination)
+    {
+        // Desloca os genes para a esquerda
+        for (int i = origin; i < destination; i++)
+        {
+            chromosome[i] = chromosome[i + 1];
+        }
+    }
+    else
+    {
+        // Desloca os genes para a direita
+        for (int i = origin; i > destination; i--)
+        {
+            chromosome[i] = chromosome[i - 1];
+        }
+    }
+
+    // Insere o gene na nova posição
+    chromosome[destination] = gene;
+}
+
+// Mutação por troca
+
+void mutation_swap()
 {
   int aux, g1, g2;
 
@@ -348,6 +400,101 @@ void mutation()
   offspring[0].cromossome[g2] = aux;
 }
 
+// Mutação por mistura
+
+void mutation_mix()
+{
+    const int n = NUM_OF_CUSTOMERS;
+
+    if (n < 2)
+    {
+        return;
+    }
+
+    int *chromosome = offspring[0].cromossome;
+    std::vector<int> positions;
+
+    // Quantidade entre 2 e n
+    int quantity = 2 + rand() % (n - 1);
+
+    while (
+        static_cast<int>(positions.size()) < quantity)
+    {
+        int position = rand() % n;
+
+        bool repeated =
+            std::find(
+                positions.begin(),
+                positions.end(),
+                position) != positions.end();
+
+        if (!repeated)
+        {
+            positions.push_back(position);
+        }
+    }
+
+    // Fisher-Yates nas posições selecionadas
+    for (int i = quantity - 1; i > 0; i--)
+    {
+        int j = rand() % (i + 1);
+
+        std::swap(
+            chromosome[positions[i]],
+            chromosome[positions[j]]);
+    }
+}
+
+// Mutação por inversão
+
+void mutation_inversion()
+{
+    const int n = NUM_OF_CUSTOMERS;
+
+    if (n < 2)
+    {
+        return;
+    }
+
+    int *chromosome = offspring[0].cromossome;
+
+    int begin_position = rand() % n;
+    int end_position = rand() % n;
+
+    while (begin_position == end_position)
+    {
+        end_position = rand() % n;
+    }
+
+    if (begin_position > end_position)
+    {
+        std::swap(begin_position, end_position);
+    }
+
+    while (begin_position < end_position)
+    {
+        std::swap(
+            chromosome[begin_position],
+            chromosome[end_position]);
+
+        begin_position++;
+        end_position--;
+    }
+}
+
+void printChromosome()
+{
+    for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+    {
+        std::cout
+            << offspring[0].cromossome[i]
+            << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+
 /*implement your heuristic in this function*/
 void run_heuristic()
 {
@@ -365,7 +512,22 @@ void run_heuristic()
   
   crossover(parent1, parent2);
 
-  mutation();
+  if (mutation_method == "ins")
+  {
+    mutation();
+  }
+  else if (mutation_method == "mix")
+  {
+    mutation();
+  }
+   else if (mutation_method == "swp")
+  {
+    mutation();
+  }
+  else
+  {
+    mutation();
+  }
 
   change_pop();
 }
@@ -373,7 +535,12 @@ void run_heuristic()
 /*free memory structures*/
 void free_heuristic()
 {
+  for (int i = 0; i <= NUM_OF_CUSTOMERS; i++)
+  {
+    delete[] lv_distance[i];
+  }
 
+  delete[] lv_distance;
   delete[] best_sol->tour;
   delete[] population;
   delete[] offspring;
