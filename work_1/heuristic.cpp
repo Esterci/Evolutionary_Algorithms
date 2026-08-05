@@ -412,7 +412,7 @@ void mutation_mix()
     }
 
     int *chromosome = offspring[0].cromossome;
-    std::vector<int> positions;
+    vector<int> positions;
 
     // Quantidade entre 2 e n
     int quantity = 2 + rand() % (n - 1);
@@ -423,7 +423,7 @@ void mutation_mix()
         int position = rand() % n;
 
         bool repeated =
-            std::find(
+            find(
                 positions.begin(),
                 positions.end(),
                 position) != positions.end();
@@ -439,7 +439,7 @@ void mutation_mix()
     {
         int j = rand() % (i + 1);
 
-        std::swap(
+        swap(
             chromosome[positions[i]],
             chromosome[positions[j]]);
     }
@@ -468,12 +468,12 @@ void mutation_inversion()
 
     if (begin_position > end_position)
     {
-        std::swap(begin_position, end_position);
+        swap(begin_position, end_position);
     }
 
     while (begin_position < end_position)
     {
-        std::swap(
+        swap(
             chromosome[begin_position],
             chromosome[end_position]);
 
@@ -486,12 +486,12 @@ void printChromosome()
 {
     for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
     {
-        std::cout
+        cout
             << offspring[0].cromossome[i]
             << " ";
     }
 
-    std::cout << std::endl;
+    cout << endl;
 }
 
 
@@ -514,19 +514,18 @@ void run_heuristic()
 
   if (mutation_method == "ins")
   {
-    mutation();
-  }
-  else if (mutation_method == "mix")
-  {
-    mutation();
+    mutation_insertion();
   }
    else if (mutation_method == "swp")
   {
-    mutation();
+    mutation_swap();
+  } else if (mutation_method == "mutation_mix")
+  {
+    mutation_mix();
   }
   else
   {
-    mutation();
+    mutation_inversion();
   }
 
   change_pop();
