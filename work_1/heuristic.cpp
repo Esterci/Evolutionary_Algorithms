@@ -26,7 +26,6 @@ string mutation_method;
 float select_pres;
 int **lv_distance = new int *[NUM_OF_CUSTOMERS + 1];
 
-
 bool compare_fitness(const solution &a, const solution &b)
 {
   return a.tour_length > b.tour_length;
@@ -147,7 +146,6 @@ int get_levenshtein_score()
   {
     for (j = 0; j < n_pop; j++)
     {
-      
     }
   }
 }
@@ -264,14 +262,12 @@ void crossover(int p1, int p2)
     offspring[0].cromossome[i] = -1;
   }
 
-  
   // Copia o segmento do primeiro pai.
   for (int i = cut1; i <= cut2; i++)
   {
     offspring[0].cromossome[i] = population[p1].cromossome[i];
   }
-  
-  
+
   // Preenche as posições externas usando o segundo pai.
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
@@ -279,7 +275,7 @@ void crossover(int p1, int p2)
     {
       int value = population[p2].cromossome[i];
       bool conflict = true;
-      
+
       while (conflict)
       {
         conflict = false;
@@ -305,10 +301,9 @@ void crossover(int p1, int p2)
 }
 
 void change_pop()
-{  
+{
   // Test fitness of offspring
   offspring[0].tour_length = fitness_evaluation(offspring[0].tour, offspring[0].steps);
-
 
   if (offspring[0].tour_length < best_sol->tour_length)
   {
@@ -334,48 +329,48 @@ void change_pop()
 
 void mutation_insertion()
 {
-    int n = NUM_OF_CUSTOMERS;
+  int n = NUM_OF_CUSTOMERS;
 
-    if (n < 2)
+  if (n < 2)
+  {
+    return;
+  }
+
+  int *chromosome = offspring[0].cromossome;
+
+  // Seleciona a posição original
+  int origin = rand() % n;
+
+  // Seleciona a nova posição
+  int destination = rand() % n;
+
+  while (destination == origin)
+  {
+    destination = rand() % n;
+  }
+
+  // Guarda o gene que será deslocado
+  int gene = chromosome[origin];
+
+  if (origin < destination)
+  {
+    // Desloca os genes para a esquerda
+    for (int i = origin; i < destination; i++)
     {
-        return;
+      chromosome[i] = chromosome[i + 1];
     }
-
-    int *chromosome = offspring[0].cromossome;
-
-    // Seleciona a posição original
-    int origin = rand() % n;
-
-    // Seleciona a nova posição
-    int destination = rand() % n;
-
-    while (destination == origin)
+  }
+  else
+  {
+    // Desloca os genes para a direita
+    for (int i = origin; i > destination; i--)
     {
-        destination = rand() % n;
+      chromosome[i] = chromosome[i - 1];
     }
+  }
 
-    // Guarda o gene que será deslocado
-    int gene = chromosome[origin];
-
-    if (origin < destination)
-    {
-        // Desloca os genes para a esquerda
-        for (int i = origin; i < destination; i++)
-        {
-            chromosome[i] = chromosome[i + 1];
-        }
-    }
-    else
-    {
-        // Desloca os genes para a direita
-        for (int i = origin; i > destination; i--)
-        {
-            chromosome[i] = chromosome[i - 1];
-        }
-    }
-
-    // Insere o gene na nova posição
-    chromosome[destination] = gene;
+  // Insere o gene na nova posição
+  chromosome[destination] = gene;
 }
 
 // Mutação por troca
@@ -404,131 +399,140 @@ void mutation_swap()
 
 void mutation_mix()
 {
-    const int n = NUM_OF_CUSTOMERS;
+  const int n = NUM_OF_CUSTOMERS;
 
-    if (n < 2)
+  if (n < 2)
+  {
+    return;
+  }
+
+  int *chromosome = offspring[0].cromossome;
+  vector<int> positions;
+
+  // Quantidade entre 2 e n
+  int quantity = 2 + rand() % (n - 1);
+
+  while (
+      static_cast<int>(positions.size()) < quantity)
+  {
+    int position = rand() % n;
+
+    bool repeated =
+        find(
+            positions.begin(),
+            positions.end(),
+            position) != positions.end();
+
+    if (!repeated)
     {
-        return;
+      positions.push_back(position);
     }
+  }
 
-    int *chromosome = offspring[0].cromossome;
-    vector<int> positions;
+  // Fisher-Yates nas posições selecionadas
+  for (int i = quantity - 1; i > 0; i--)
+  {
+    int j = rand() % (i + 1);
 
-    // Quantidade entre 2 e n
-    int quantity = 2 + rand() % (n - 1);
-
-    while (
-        static_cast<int>(positions.size()) < quantity)
-    {
-        int position = rand() % n;
-
-        bool repeated =
-            find(
-                positions.begin(),
-                positions.end(),
-                position) != positions.end();
-
-        if (!repeated)
-        {
-            positions.push_back(position);
-        }
-    }
-
-    // Fisher-Yates nas posições selecionadas
-    for (int i = quantity - 1; i > 0; i--)
-    {
-        int j = rand() % (i + 1);
-
-        swap(
-            chromosome[positions[i]],
-            chromosome[positions[j]]);
-    }
+    swap(
+        chromosome[positions[i]],
+        chromosome[positions[j]]);
+  }
 }
 
 // Mutação por inversão
 
 void mutation_inversion()
 {
-    const int n = NUM_OF_CUSTOMERS;
+  const int n = NUM_OF_CUSTOMERS;
 
-    if (n < 2)
-    {
-        return;
-    }
+  if (n < 2)
+  {
+    return;
+  }
 
-    int *chromosome = offspring[0].cromossome;
+  int *chromosome = offspring[0].cromossome;
 
-    int begin_position = rand() % n;
-    int end_position = rand() % n;
+  int begin_position = rand() % n;
+  int end_position = rand() % n;
 
-    while (begin_position == end_position)
-    {
-        end_position = rand() % n;
-    }
+  while (begin_position == end_position)
+  {
+    end_position = rand() % n;
+  }
 
-    if (begin_position > end_position)
-    {
-        swap(begin_position, end_position);
-    }
+  if (begin_position > end_position)
+  {
+    swap(begin_position, end_position);
+  }
 
-    while (begin_position < end_position)
-    {
-        swap(
-            chromosome[begin_position],
-            chromosome[end_position]);
+  while (begin_position < end_position)
+  {
+    swap(
+        chromosome[begin_position],
+        chromosome[end_position]);
 
-        begin_position++;
-        end_position--;
-    }
+    begin_position++;
+    end_position--;
+  }
 }
 
 void printChromosome()
 {
-    for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
-    {
-        cout
-            << offspring[0].cromossome[i]
-            << " ";
-    }
+  for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
+  {
+    cout
+        << offspring[0].cromossome[i]
+        << " ";
+  }
 
-    cout << endl;
+  cout << endl;
 }
-
 
 /*implement your heuristic in this function*/
 void run_heuristic()
 {
 
   int parent1, parent2;
+  double mutation_rand, crossover_rand;
 
   parent1 = parent_selection(population);
 
   parent2 = parent1;
 
+  mutation_rand = rand() / (RAND_MAX * 1.0);
+  crossover_rand = rand() / (RAND_MAX * 1.0);
+
   while (parent2 == parent1)
   {
     parent2 = parent_selection(population);
   }
-  
-  crossover(parent1, parent2);
 
-  if (mutation_method == "ins")
+  if (crossover_rand <= crossover_rate)
   {
-    mutation_insertion();
-  }
-   else if (mutation_method == "swp")
-  {
-    mutation_swap();
-  } else if (mutation_method == "mutation_mix")
-  {
-    mutation_mix();
-  }
-  else
-  {
-    mutation_inversion();
-  }
+    crossover(parent1, parent2);
 
-  change_pop();
+    if(mutation_rand <= mutation_rate){
+      if (mutation_method == "ins")
+      {
+        mutation_insertion();
+      }
+      else if (mutation_method == "swp")
+      {
+        mutation_swap();
+      }
+      else if (mutation_method == "mutation_mix")
+      {
+        mutation_mix();
+      }
+      else
+      {
+        mutation_inversion();
+      }
+    }
+
+    change_pop();
+  }
 }
 
 /*free memory structures*/
