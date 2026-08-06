@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -g -O0
+CXXFLAGS = -Wall -Wextra -g -O3
 
 TARGET = main
 OBJECTS = main.o heuristic.o EVRP.o stats.o

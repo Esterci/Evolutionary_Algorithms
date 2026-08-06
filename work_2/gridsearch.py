@@ -22,12 +22,12 @@ population_sizes = np.linspace(2**3, 2**5, num=1, endpoint=True, dtype=np.int16)
 
 def execute_configuration(configuration):
     (
-        problem_instance,
         mutation_rate,
         crossover_rate,
         mutation_method,
         selection_pressure,
         population_size,
+        problem_instance,
     ) = configuration
 
     mutation_rate = float(mutation_rate)
@@ -78,14 +78,14 @@ def execute_configuration(configuration):
 
 configurations = list(
     itertools.product(
-        problem_instances,
         mutation_rates,
         crossover_rates,
         mutation_methods,
         selection_pressures,
         population_sizes,
+        problem_instances,
     )
-)
+) 
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
 max_workers = min(8, os.cpu_count() or 1)

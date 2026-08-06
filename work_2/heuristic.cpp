@@ -30,6 +30,7 @@ double fitness_std;
 
 // Context variables
 int **lv_distance;
+
 const double EPS = 1e-9;
 
 bool compare_fitness(const solution &a, const solution &b)
@@ -69,7 +70,7 @@ bool can_reach_node(int from, int to, double energy_used)
  *   - the depot;
  *   - a charging station.
  */
-double minimum_energy_to_recharge(int from)
+double minimum_energy(int from)
 {
   double minimum_energy =
       get_energy_consumption(from, DEPOT);
@@ -107,7 +108,7 @@ double minimum_energy_to_recharge(int from)
  * Therefore, this function does not simply select the nearest station.
  * It selects the nearest station that keeps the route feasible.
  */
-int nearest_feasible_station_before_customer(int from, int customer, double energy_used)
+int nearest_stat_bef_customer(int from, int customer, double energy_used)
 {
   int best_station = -1;
 
@@ -115,7 +116,7 @@ int nearest_feasible_station_before_customer(int from, int customer, double ener
       std::numeric_limits<double>::infinity();
 
   double escape_energy =
-      minimum_energy_to_recharge(customer);
+      minimum_energy(customer);
 
   for (int station = NUM_OF_CUSTOMERS + 1;
        station < ACTUAL_PROBLEM_SIZE;
@@ -177,7 +178,7 @@ int nearest_feasible_station_before_customer(int from, int customer, double ener
  * This function is used when the vehicle capacity is exceeded
  * or when the final route must be closed.
  */
-int nearest_feasible_station_before_depot(int from, double energy_used)
+int nearest_stat_bef_depot(int from, double energy_used)
 {
   int best_station = -1;
 
@@ -288,7 +289,7 @@ void recompute_route_state(const solution *route, double &capacity_used, double 
  * customer can be processed again, this time with a charging
  * station inserted before it.
  */
-bool rollback_previous_customer(solution *route, int &customer_index, double &capacity_used, double &energy_used)
+bool rollback(solution *route, int &customer_index, double &capacity_used, double &energy_used)
 {
   if (route->steps <= 1)
   {
@@ -346,7 +347,6 @@ void take_route(solution *route)
    * Prevents an infinite loop if there is a problem with the
    * instance, chromosome sequence, or charging-station connectivity.
    */
-
   int iterations = 0;
 
   const int max_iterations =
@@ -359,6 +359,7 @@ void take_route(solution *route)
     if (iterations > max_iterations)
     {
       route->tour_length = INT_MAX;
+      break;
     }
 
     /*
@@ -372,7 +373,7 @@ void take_route(solution *route)
 
       if (from == DEPOT)
       {
-        return true;
+        break;
       }
 
       /*
@@ -383,7 +384,7 @@ void take_route(solution *route)
         route->tour[route->steps] = DEPOT;
         route->steps++;
 
-        return true;
+        break;
       }
 
       /*
@@ -391,7 +392,7 @@ void take_route(solution *route)
        * Find the nearest feasible charging station.
        */
       int station =
-          nearest_feasible_station_before_depot(
+          nearest_stat_bef_depot(
               from,
               energy_used);
 
@@ -416,27 +417,20 @@ void take_route(solution *route)
        * Remove the last customer and try to recharge before
        * visiting it.
        */
-      if (rollback_previous_customer(
-              route,
-              customer_index,
-              capacity_used,
-              energy_used))
+      if (rollback(route, customer_index, capacity_used, energy_used))
       {
         continue;
       }
 
       route->tour_length = INT_MAX;
-      return false;
+      break;
     }
 
-    int from =
-        route->tour[route->steps - 1];
+    int from = route->tour[route->steps - 1];
 
-    int customer =
-        route->cromossome[customer_index];
+    int customer = route->cromossome[customer_index];
 
-    double customer_demand =
-        get_customer_demand(customer);
+    double customer_demand = get_customer_demand(customer);
 
     /*
      * A customer whose individual demand exceeds the maximum
@@ -445,15 +439,14 @@ void take_route(solution *route)
     if (customer_demand > MAX_CAPACITY + EPS)
     {
       route->tour_length = INT_MAX;
-      return false;
+      break;
     }
 
     /*
      * The current vehicle capacity is not enough to serve
      * the next customer. The vehicle must return to the depot.
      */
-    if (capacity_used + customer_demand >
-        MAX_CAPACITY + EPS)
+    if (capacity_used + customer_demand > MAX_CAPACITY + EPS)
     {
       /*
        * Return directly to the depot.
@@ -473,10 +466,7 @@ void take_route(solution *route)
        * There is not enough energy to reach the depot directly.
        * Try to visit a charging station first.
        */
-      int station =
-          nearest_feasible_station_before_depot(
-              from,
-              energy_used);
+      int station = nearest_stat_bef_depot(from, energy_used);
 
       if (station != -1)
       {
@@ -492,31 +482,24 @@ void take_route(solution *route)
        * The vehicle cannot reach either the depot or a suitable
        * charging station. Backtrack to the previous customer.
        */
-      if (rollback_previous_customer(
-              route,
-              customer_index,
-              capacity_used,
-              energy_used))
+      if (rollback(route, customer_index, capacity_used, energy_used))
       {
         continue;
       }
 
       route->tour_length = INT_MAX;
-      return false;
+      break;
     }
 
-    double energy_to_customer =
-        get_energy_consumption(from, customer);
+    double energy_to_customer = get_energy_consumption(from, customer);
 
-    double energy_after_customer =
-        energy_used + energy_to_customer;
+    double energy_after_customer = energy_used + energy_to_customer;
 
     /*
      * Energy required to reach a charging station or the depot
      * after visiting the customer.
      */
-    double escape_energy =
-        minimum_energy_to_recharge(customer);
+    double escape_energy = minimum_energy(customer);
 
     /*
      * The customer is inserted only if:
@@ -524,13 +507,9 @@ void take_route(solution *route)
      * 1. the vehicle can reach the customer;
      * 2. the vehicle can still reach a recharge point afterward.
      */
-    bool can_visit_customer =
-        energy_after_customer <=
-        BATTERY_CAPACITY + EPS;
+    bool can_visit_customer = energy_after_customer <= BATTERY_CAPACITY + EPS;
 
-    bool can_leave_customer =
-        energy_after_customer + escape_energy <=
-        BATTERY_CAPACITY + EPS;
+    bool can_leave_customer = energy_after_customer + escape_energy <= BATTERY_CAPACITY + EPS;
 
     if (can_visit_customer && can_leave_customer)
     {
@@ -550,11 +529,7 @@ void take_route(solution *route)
      * battery charge. Find the nearest feasible charging station
      * before visiting the customer.
      */
-    int station =
-        nearest_feasible_station_before_customer(
-            from,
-            customer,
-            energy_used);
+    int station = nearest_stat_bef_customer(from, customer, energy_used);
 
     if (station != -1)
     {
@@ -570,19 +545,13 @@ void take_route(solution *route)
      * If no suitable charging station is available, the depot
      * may also be used as a recharge point.
      */
-    double depot_to_customer =
-        get_energy_consumption(DEPOT, customer);
+    double depot_to_customer = get_energy_consumption(DEPOT, customer);
 
-    bool depot_is_reachable =
-        from != DEPOT &&
-        can_reach_node(from, DEPOT, energy_used);
+    bool depot_is_reachable = from != DEPOT && can_reach_node(from, DEPOT, energy_used);
 
-    bool customer_is_safe_from_depot =
-        depot_to_customer + escape_energy <=
-        BATTERY_CAPACITY + EPS;
+    bool customer_is_safe_from_depot = depot_to_customer + escape_energy <= BATTERY_CAPACITY + EPS;
 
-    if (depot_is_reachable &&
-        customer_is_safe_from_depot)
+    if (depot_is_reachable && customer_is_safe_from_depot)
     {
       route->tour[route->steps] = DEPOT;
       route->steps++;
@@ -602,11 +571,7 @@ void take_route(solution *route)
      * that customer will be processed again with a charging
      * station inserted before it.
      */
-    if (rollback_previous_customer(
-            route,
-            customer_index,
-            capacity_used,
-            energy_used))
+    if (rollback(route,customer_index,capacity_used,energy_used))
     {
       continue;
     }
@@ -617,8 +582,10 @@ void take_route(solution *route)
      * the current problem configuration.
      */
     route->tour_length = INT_MAX;
-    return false;
+    break;
   }
+
+  
 }
 
 int hamming_distance(const int *vector1, const int *vector2, int dist_limit)

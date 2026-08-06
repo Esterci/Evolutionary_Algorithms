@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#PBS -o grid.out
+#PBS -e grid.err
+#PBS -l walltime=12:30:00
+#PBS -l select=1:ncpus=16:mpiprocs=16:host=compute-3-26
+
+cd "$PBS_O_WORKDIR"
+
+cat "$PBS_NODEFILE"
+
+/home/thiago.esterci/.conda/envs/torch-numba-11/bin/python3 gridsearch.py
