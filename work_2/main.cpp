@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     // print_solution(best_sol->tour, best_sol->steps);
 
-    // write_solution(best_sol->tour, best_sol->steps);
+    write_solution(best_sol->tour, best_sol->steps);
 
     check_solution(best_sol->tour,best_sol->steps);
 

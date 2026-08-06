@@ -1,13 +1,7 @@
-import itertools
-import os
-import subprocess
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import numpy as np
+from imports import *
 
 problem_instances = [
-    #"E-n22-k4.evrp",
+    "E-n22-k4.evrp",
     "E-n76-k7.evrp",
 ]
 
@@ -25,7 +19,6 @@ mutation_methods = [
 selection_pressures = np.linspace(1.5, 2.0, num=1, endpoint=True, dtype=np.float32)
 
 population_sizes = np.linspace(2**3, 2**5, num=1, endpoint=True, dtype=np.int16)
-
 
 def execute_configuration(configuration):
     (
@@ -95,7 +88,7 @@ configurations = list(
 )
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
-max_workers = min(4, os.cpu_count() or 1)
+max_workers = min(8, os.cpu_count() or 1)
 
 print(f"Total de configurações: {len(configurations)}")
 print(f"Execuções simultâneas: {max_workers}")

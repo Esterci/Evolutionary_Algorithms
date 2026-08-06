@@ -30,70 +30,594 @@ double fitness_std;
 
 // Context variables
 int **lv_distance;
+const double EPS = 1e-9;
 
 bool compare_fitness(const solution &a, const solution &b)
 {
   return a.tour_length > b.tour_length;
 }
 
+/*
+ * Checks whether the node corresponds to a customer.
+ *
+ * Assumes:
+ *   customers: 1 to NUM_OF_CUSTOMERS
+ *   depot: DEPOT
+ *   charging stations: above NUM_OF_CUSTOMERS
+ */
+bool is_customer_node(int node)
+{
+  return node >= 1 && node <= NUM_OF_CUSTOMERS;
+}
+
+/*
+ * Checks whether the vehicle can travel from "from" to "to"
+ * considering the energy already consumed since the last recharge.
+ */
+bool can_reach_node(int from, int to, double energy_used)
+{
+  double consumption = get_energy_consumption(from, to);
+
+  return energy_used + consumption <= BATTERY_CAPACITY + EPS;
+}
+
+/*
+ * Returns the minimum amount of energy required to leave a node
+ * and reach a location where the battery can be recharged.
+ *
+ * The recharge location may be:
+ *   - the depot;
+ *   - a charging station.
+ */
+double minimum_energy_to_recharge(int from)
+{
+  double minimum_energy =
+      get_energy_consumption(from, DEPOT);
+
+  for (int station = NUM_OF_CUSTOMERS + 1;
+       station < ACTUAL_PROBLEM_SIZE;
+       station++)
+  {
+    if (!is_charging_station(station))
+      continue;
+
+    if (station == from)
+      continue;
+
+    double consumption =
+        get_energy_consumption(from, station);
+
+    if (consumption < minimum_energy)
+    {
+      minimum_energy = consumption;
+    }
+  }
+
+  return minimum_energy;
+}
+
+/*
+ * Finds the nearest charging station that:
+ *
+ * 1. can be reached using the current battery charge;
+ * 2. allows the vehicle to reach the customer after recharging;
+ * 3. allows the vehicle to leave the customer and reach another
+ *    charging station or the depot.
+ *
+ * Therefore, this function does not simply select the nearest station.
+ * It selects the nearest station that keeps the route feasible.
+ */
+int nearest_feasible_station_before_customer(int from, int customer, double energy_used)
+{
+  int best_station = -1;
+
+  double best_distance =
+      std::numeric_limits<double>::infinity();
+
+  double escape_energy =
+      minimum_energy_to_recharge(customer);
+
+  for (int station = NUM_OF_CUSTOMERS + 1;
+       station < ACTUAL_PROBLEM_SIZE;
+       station++)
+  {
+    if (!is_charging_station(station))
+      continue;
+
+    if (station == from)
+      continue;
+
+    double energy_to_station =
+        get_energy_consumption(from, station);
+
+    /*
+     * First, check whether the station can be reached
+     * using the current battery charge.
+     */
+    if (energy_used + energy_to_station >
+        BATTERY_CAPACITY + EPS)
+    {
+      continue;
+    }
+
+    double station_to_customer =
+        get_energy_consumption(station, customer);
+
+    /*
+     * After recharging, it must be possible to travel:
+     *
+     * station -> customer -> depot/station
+     */
+    if (station_to_customer + escape_energy >
+        BATTERY_CAPACITY + EPS)
+    {
+      continue;
+    }
+
+    /*
+     * Among the feasible charging stations, select the one
+     * closest to the current position.
+     */
+    if (energy_to_station < best_distance)
+    {
+      best_distance = energy_to_station;
+      best_station = station;
+    }
+  }
+
+  return best_station;
+}
+
+/*
+ * Finds the nearest charging station that:
+ *
+ * 1. can be reached using the current battery charge;
+ * 2. allows the vehicle to reach the depot after recharging.
+ *
+ * This function is used when the vehicle capacity is exceeded
+ * or when the final route must be closed.
+ */
+int nearest_feasible_station_before_depot(int from, double energy_used)
+{
+  int best_station = -1;
+
+  double best_distance =
+      std::numeric_limits<double>::infinity();
+
+  for (int station = NUM_OF_CUSTOMERS + 1;
+       station < ACTUAL_PROBLEM_SIZE;
+       station++)
+  {
+    if (!is_charging_station(station))
+      continue;
+
+    if (station == from)
+      continue;
+
+    double energy_to_station =
+        get_energy_consumption(from, station);
+
+    /*
+     * The station must be reachable using the remaining
+     * battery charge.
+     */
+    if (energy_used + energy_to_station >
+        BATTERY_CAPACITY + EPS)
+    {
+      continue;
+    }
+
+    /*
+     * After recharging, the vehicle must be able
+     * to reach the depot.
+     */
+    double station_to_depot =
+        get_energy_consumption(station, DEPOT);
+
+    if (station_to_depot >
+        BATTERY_CAPACITY + EPS)
+    {
+      continue;
+    }
+
+    if (energy_to_station < best_distance)
+    {
+      best_distance = energy_to_station;
+      best_station = station;
+    }
+  }
+
+  return best_station;
+}
+
+/*
+ * Recomputes the used capacity and consumed energy
+ * after a backtracking operation.
+ *
+ * This avoids storing an additional array containing
+ * the state associated with each route step.
+ */
+void recompute_route_state(const solution *route, double &capacity_used, double &energy_used)
+{
+  capacity_used = 0.0;
+  energy_used = 0.0;
+
+  for (int step = 1; step < route->steps; step++)
+  {
+    int previous = route->tour[step - 1];
+    int current = route->tour[step];
+
+    energy_used +=
+        get_energy_consumption(previous, current);
+
+    /*
+     * When the vehicle reaches the depot:
+     *   - the vehicle capacity is reset;
+     *   - the battery is fully recharged.
+     */
+    if (current == DEPOT)
+    {
+      capacity_used = 0.0;
+      energy_used = 0.0;
+    }
+    /*
+     * When the vehicle reaches a charging station:
+     *   - only the battery is recharged;
+     *   - the transported load remains unchanged.
+     */
+    else if (is_charging_station(current))
+    {
+      energy_used = 0.0;
+    }
+    /*
+     * When the vehicle reaches a customer:
+     *   - the customer's demand is added to the used capacity.
+     */
+    else if (is_customer_node(current))
+    {
+      capacity_used +=
+          get_customer_demand(current);
+    }
+  }
+}
+
+/*
+ * Removes the last customer inserted into the route.
+ *
+ * The chromosome index is also decremented so that the removed
+ * customer can be processed again, this time with a charging
+ * station inserted before it.
+ */
+bool rollback_previous_customer(solution *route, int &customer_index, double &capacity_used, double &energy_used)
+{
+  if (route->steps <= 1)
+  {
+    return false;
+  }
+
+  if (customer_index <= 0)
+  {
+    return false;
+  }
+
+  int last_node =
+      route->tour[route->steps - 1];
+
+  /*
+   * The backtracking operation must remove a customer.
+   * This function does not remove a depot or charging station.
+   */
+  if (!is_customer_node(last_node))
+  {
+    return false;
+  }
+
+  route->steps--;
+
+  /*
+   * The removed customer must be processed again.
+   */
+  customer_index--;
+
+  recompute_route_state(
+      route,
+      capacity_used,
+      energy_used);
+
+  return true;
+}
+
+/*
+ * Builds a feasible route.
+ */
 void take_route(solution *route)
 {
-  /*generate a random solution for the random heuristic*/
-  int i;
-  double energy_temp = 0.0;
-  double capacity_temp = 0.0;
-  int from, to;
-  int charging_station;
+  int customer_index = 0;
+
+  double energy_used = 0.0;
+  double capacity_used = 0.0;
 
   route->steps = 1;
   route->tour_length = INT_MAX;
 
   route->tour[0] = DEPOT;
 
-  i = 0;
-  while (i < NUM_OF_CUSTOMERS)
-  {
-    from = route->tour[route->steps - 1];
-    to = route->cromossome[i];
-    if ((capacity_temp + get_customer_demand(to)) <= MAX_CAPACITY && energy_temp + get_energy_consumption(from, to) <= BATTERY_CAPACITY)
-    {
-      capacity_temp += get_customer_demand(to);
-      energy_temp += get_energy_consumption(from, to);
-      route->tour[route->steps] = to;
-      route->steps++;
-      i++;
-    }
-    else if ((capacity_temp + get_customer_demand(to)) > MAX_CAPACITY)
-    {
-      capacity_temp = 0.0;
-      energy_temp = 0.0;
-      route->tour[route->steps] = DEPOT;
-      route->steps++;
-    }
-    else if (energy_temp + get_energy_consumption(from, to) > BATTERY_CAPACITY)
-    {
-      charging_station = rand() % (ACTUAL_PROBLEM_SIZE - NUM_OF_CUSTOMERS - 1) + NUM_OF_CUSTOMERS + 1;
-      if (is_charging_station(charging_station) == true)
-      {
-        energy_temp = 0.0;
-        route->tour[route->steps] = charging_station;
-        route->steps++;
-      }
-    }
-    else
-    {
-      capacity_temp = 0.0;
-      energy_temp = 0.0;
-      route->tour[route->steps] = DEPOT;
-      route->steps++;
-    }
-  }
+  /*
+   * Prevents an infinite loop if there is a problem with the
+   * instance, chromosome sequence, or charging-station connectivity.
+   */
 
-  // close EVRP tour to return back to the depot
-  if (route->tour[route->steps - 1] != DEPOT)
+  int iterations = 0;
+
+  const int max_iterations =
+      20 * (ACTUAL_PROBLEM_SIZE + NUM_OF_CUSTOMERS);
+
+  while (true)
   {
-    route->tour[route->steps] = DEPOT;
-    route->steps++;
+    iterations++;
+
+    if (iterations > max_iterations)
+    {
+      route->tour_length = INT_MAX;
+    }
+
+    /*
+     * All customers have already been inserted.
+     * The route must now be closed at the depot.
+     */
+    if (customer_index >= NUM_OF_CUSTOMERS)
+    {
+      int from =
+          route->tour[route->steps - 1];
+
+      if (from == DEPOT)
+      {
+        return true;
+      }
+
+      /*
+       * Return directly to the depot.
+       */
+      if (can_reach_node(from, DEPOT, energy_used))
+      {
+        route->tour[route->steps] = DEPOT;
+        route->steps++;
+
+        return true;
+      }
+
+      /*
+       * The vehicle cannot reach the depot directly.
+       * Find the nearest feasible charging station.
+       */
+      int station =
+          nearest_feasible_station_before_depot(
+              from,
+              energy_used);
+
+      if (station != -1)
+      {
+        route->tour[route->steps] = station;
+        route->steps++;
+
+        /*
+         * The energy used to reach the charging station does not
+         * need to remain stored because the battery is recharged.
+         */
+        energy_used = 0.0;
+
+        continue;
+      }
+
+      /*
+       * The vehicle cannot reach the depot or a charging station
+       * that would allow it to reach the depot.
+       *
+       * Remove the last customer and try to recharge before
+       * visiting it.
+       */
+      if (rollback_previous_customer(
+              route,
+              customer_index,
+              capacity_used,
+              energy_used))
+      {
+        continue;
+      }
+
+      route->tour_length = INT_MAX;
+      return false;
+    }
+
+    int from =
+        route->tour[route->steps - 1];
+
+    int customer =
+        route->cromossome[customer_index];
+
+    double customer_demand =
+        get_customer_demand(customer);
+
+    /*
+     * A customer whose individual demand exceeds the maximum
+     * vehicle capacity can never be served.
+     */
+    if (customer_demand > MAX_CAPACITY + EPS)
+    {
+      route->tour_length = INT_MAX;
+      return false;
+    }
+
+    /*
+     * The current vehicle capacity is not enough to serve
+     * the next customer. The vehicle must return to the depot.
+     */
+    if (capacity_used + customer_demand >
+        MAX_CAPACITY + EPS)
+    {
+      /*
+       * Return directly to the depot.
+       */
+      if (can_reach_node(from, DEPOT, energy_used))
+      {
+        route->tour[route->steps] = DEPOT;
+        route->steps++;
+
+        capacity_used = 0.0;
+        energy_used = 0.0;
+
+        continue;
+      }
+
+      /*
+       * There is not enough energy to reach the depot directly.
+       * Try to visit a charging station first.
+       */
+      int station =
+          nearest_feasible_station_before_depot(
+              from,
+              energy_used);
+
+      if (station != -1)
+      {
+        route->tour[route->steps] = station;
+        route->steps++;
+
+        energy_used = 0.0;
+
+        continue;
+      }
+
+      /*
+       * The vehicle cannot reach either the depot or a suitable
+       * charging station. Backtrack to the previous customer.
+       */
+      if (rollback_previous_customer(
+              route,
+              customer_index,
+              capacity_used,
+              energy_used))
+      {
+        continue;
+      }
+
+      route->tour_length = INT_MAX;
+      return false;
+    }
+
+    double energy_to_customer =
+        get_energy_consumption(from, customer);
+
+    double energy_after_customer =
+        energy_used + energy_to_customer;
+
+    /*
+     * Energy required to reach a charging station or the depot
+     * after visiting the customer.
+     */
+    double escape_energy =
+        minimum_energy_to_recharge(customer);
+
+    /*
+     * The customer is inserted only if:
+     *
+     * 1. the vehicle can reach the customer;
+     * 2. the vehicle can still reach a recharge point afterward.
+     */
+    bool can_visit_customer =
+        energy_after_customer <=
+        BATTERY_CAPACITY + EPS;
+
+    bool can_leave_customer =
+        energy_after_customer + escape_energy <=
+        BATTERY_CAPACITY + EPS;
+
+    if (can_visit_customer && can_leave_customer)
+    {
+      capacity_used += customer_demand;
+      energy_used = energy_after_customer;
+
+      route->tour[route->steps] = customer;
+      route->steps++;
+
+      customer_index++;
+
+      continue;
+    }
+
+    /*
+     * It is not safe to visit the customer using the current
+     * battery charge. Find the nearest feasible charging station
+     * before visiting the customer.
+     */
+    int station =
+        nearest_feasible_station_before_customer(
+            from,
+            customer,
+            energy_used);
+
+    if (station != -1)
+    {
+      route->tour[route->steps] = station;
+      route->steps++;
+
+      energy_used = 0.0;
+
+      continue;
+    }
+
+    /*
+     * If no suitable charging station is available, the depot
+     * may also be used as a recharge point.
+     */
+    double depot_to_customer =
+        get_energy_consumption(DEPOT, customer);
+
+    bool depot_is_reachable =
+        from != DEPOT &&
+        can_reach_node(from, DEPOT, energy_used);
+
+    bool customer_is_safe_from_depot =
+        depot_to_customer + escape_energy <=
+        BATTERY_CAPACITY + EPS;
+
+    if (depot_is_reachable &&
+        customer_is_safe_from_depot)
+    {
+      route->tour[route->steps] = DEPOT;
+      route->steps++;
+
+      capacity_used = 0.0;
+      energy_used = 0.0;
+
+      continue;
+    }
+
+    /*
+     * The current battery charge is not enough to safely reach
+     * the next customer, and there is no reachable charging
+     * station or depot.
+     *
+     * Remove the previous customer. During the next iteration,
+     * that customer will be processed again with a charging
+     * station inserted before it.
+     */
+    if (rollback_previous_customer(
+            route,
+            customer_index,
+            capacity_used,
+            energy_used))
+    {
+      continue;
+    }
+
+    /*
+     * There is no previous customer to remove.
+     * Therefore, this chromosome cannot be decoded using
+     * the current problem configuration.
+     */
+    route->tour_length = INT_MAX;
+    return false;
   }
 }
 
