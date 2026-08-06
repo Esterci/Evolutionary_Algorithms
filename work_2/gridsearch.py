@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 
 problem_instances = [
-    "E-n22-k4.evrp",
+    #"E-n22-k4.evrp",
     "E-n76-k7.evrp",
 ]
 
@@ -95,7 +95,7 @@ configurations = list(
 )
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
-max_workers = min(6, os.cpu_count() or 1)
+max_workers = min(4, os.cpu_count() or 1)
 
 print(f"Total de configurações: {len(configurations)}")
 print(f"Execuções simultâneas: {max_workers}")
