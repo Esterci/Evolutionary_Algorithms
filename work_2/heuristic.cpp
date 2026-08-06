@@ -40,7 +40,10 @@ void take_route(solution *route)
 {
   /*generate a random solution for the random heuristic*/
   int i;
-  int to;
+  double energy_temp = 0.0;
+  double capacity_temp = 0.0;
+  int from, to;
+  int charging_station;
 
   route->steps = 1;
   route->tour_length = INT_MAX;
@@ -50,11 +53,40 @@ void take_route(solution *route)
   i = 0;
   while (i < NUM_OF_CUSTOMERS)
   {
+    from = route->tour[route->steps - 1];
     to = route->cromossome[i];
-
-    route->tour[route->steps] = to;
-    route->steps++;
-    i++;
+    if ((capacity_temp + get_customer_demand(to)) <= MAX_CAPACITY && energy_temp + get_energy_consumption(from, to) <= BATTERY_CAPACITY)
+    {
+      capacity_temp += get_customer_demand(to);
+      energy_temp += get_energy_consumption(from, to);
+      route->tour[route->steps] = to;
+      route->steps++;
+      i++;
+    }
+    else if ((capacity_temp + get_customer_demand(to)) > MAX_CAPACITY)
+    {
+      capacity_temp = 0.0;
+      energy_temp = 0.0;
+      route->tour[route->steps] = DEPOT;
+      route->steps++;
+    }
+    else if (energy_temp + get_energy_consumption(from, to) > BATTERY_CAPACITY)
+    {
+      charging_station = rand() % (ACTUAL_PROBLEM_SIZE - NUM_OF_CUSTOMERS - 1) + NUM_OF_CUSTOMERS + 1;
+      if (is_charging_station(charging_station) == true)
+      {
+        energy_temp = 0.0;
+        route->tour[route->steps] = charging_station;
+        route->steps++;
+      }
+    }
+    else
+    {
+      capacity_temp = 0.0;
+      energy_temp = 0.0;
+      route->tour[route->steps] = DEPOT;
+      route->steps++;
+    }
   }
 
   // close EVRP tour to return back to the depot
@@ -563,7 +595,7 @@ void run_heuristic()
     }
 
     take_route(&offspring[0]);
-    
+
     change_pop();
   }
 
