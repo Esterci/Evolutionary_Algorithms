@@ -138,7 +138,7 @@ double worst_of_vector(double *values, int l)
   return max;
 }
 
-void write_solution(int *routes, int size)
+void write_solution(int *routes, int size, bool viable)
 {
   fprintf(log_performance, "route: ");
 
@@ -146,6 +146,7 @@ void write_solution(int *routes, int size)
   {
     fprintf(log_performance, "%d, ", routes[i]);
   }
+  fprintf(log_performance, ";viable: %d", viable);
   fprintf(log_performance, "\n");
 }
 
