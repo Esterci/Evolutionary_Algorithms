@@ -106,12 +106,12 @@ with ThreadPoolExecutor(max_workers=max_workers) as executor:
         result = future.result()
 
         (
-            problem_instance,
             mutation_rate,
             crossover_rate,
             mutation_method,
             selection_pressure,
             population_size,
+            problem_instance,
         ) = result["configuration"]
 
         status = "OK" if result["success"] else "ERRO"

@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
   select_pres = stof(argv[5]);
   n_pop = stoi(argv[6]);
   verbose = stoi(argv[7]);
-
+  
   if (argc < 2)
   {
     cout << "Uso: " << argv[0]
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     // print_solution(best_sol->tour, best_sol->steps);
 
-    write_solution(best_sol->tour, best_sol->steps);
+    write_solution(best_sol->tour, best_sol->steps, best_sol->viable);
 
     check_solution(best_sol->tour,best_sol->steps);
 
