@@ -952,6 +952,7 @@ void initialize_heuristic(int run)
     population[i].steps = 0;
     population[i].tour_length = INT_MAX;
     population[i].weight = 0;
+    population[i].viable = true;
 
     if (i == 0)
     {
@@ -995,6 +996,8 @@ void initialize_heuristic(int run)
     offspring[i].steps = 0;
     offspring[i].tour_length = INT_MAX;
     offspring[i].weight = 0;
+    offspring[i].viable = true;
+
   }
 }
 
@@ -1036,6 +1039,8 @@ void crossover(int p1, int p2)
   int cut1 = rand() % (NUM_OF_CUSTOMERS - 3) + 1;
 
   int cut2 = rand() % (NUM_OF_CUSTOMERS - 2 - cut1) + (cut1 + 1);
+
+  offspring[0].viable = true;
 
   for (int i = 0; i < NUM_OF_CUSTOMERS; i++)
   {
@@ -1097,6 +1102,7 @@ void copy_solution(solution &destination, const solution &source)
 
   // Copy the fitness value.
   destination.tour_length = source.tour_length;
+  destination.viable = source.viable;
 }
 
 void change_pop()
