@@ -1,14 +1,8 @@
-import itertools
-import os
-import subprocess
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import numpy as np
+from imports import *
 
 problem_instances = [
-    #"E-n22-k4.evrp",
-    "E-n76-k7.evrp",
+    "E-n22-k4.evrp",
+    #"E-n76-k7.evrp",
 ]
 
 mutation_rates = np.linspace(0.8, 0.95, num=1, endpoint=True, dtype=np.float32)
@@ -26,15 +20,14 @@ selection_pressures = np.linspace(1.5, 2.0, num=1, endpoint=True, dtype=np.float
 
 population_sizes = np.linspace(2**3, 2**5, num=1, endpoint=True, dtype=np.int16)
 
-
 def execute_configuration(configuration):
     (
-        problem_instance,
         mutation_rate,
         crossover_rate,
         mutation_method,
         selection_pressure,
         population_size,
+        problem_instance,
     ) = configuration
 
     mutation_rate = float(mutation_rate)
@@ -85,14 +78,14 @@ def execute_configuration(configuration):
 
 configurations = list(
     itertools.product(
-        problem_instances,
         mutation_rates,
         crossover_rates,
         mutation_methods,
         selection_pressures,
         population_sizes,
+        problem_instances,
     )
-)
+) 
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
 max_workers = min(4, os.cpu_count() or 1)
@@ -112,12 +105,12 @@ with ThreadPoolExecutor(max_workers=max_workers) as executor:
         result = future.result()
 
         (
-            problem_instance,
             mutation_rate,
             crossover_rate,
             mutation_method,
             selection_pressure,
             population_size,
+            problem_instance,
         ) = result["configuration"]
 
         status = "OK" if result["success"] else "ERRO"
