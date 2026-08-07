@@ -33,6 +33,12 @@ int **lv_distance;
 
 const double EPS = 1e-9;
 
+const double ENERGY_PENALTY = 10.0;
+const double CAPACITY_PENALTY = 10.0;
+const double REPAIR_PENALTY = 500.0;
+
+const double PENALTY_EXPONENT = 1.0;
+
 bool compare_fitness(const solution &a, const solution &b)
 {
   return a.tour_length > b.tour_length;
@@ -40,18 +46,12 @@ bool compare_fitness(const solution &a, const solution &b)
 
 /*
  * Checks whether a node represents a customer.
- *
- * Assumes:
- *   depot: DEPOT
- *   customers: 1 to NUM_OF_CUSTOMERS
- *   charging stations: above NUM_OF_CUSTOMERS
  */
 bool is_customer_node(int node)
 {
   return node >= 1 &&
          node <= NUM_OF_CUSTOMERS;
 }
-
 
 /*
  * Checks whether the vehicle can travel from "from"
@@ -69,6 +69,77 @@ bool can_reach_node(
          BATTERY_CAPACITY + EPS;
 }
 
+/*
+ * Calculates the battery constraint violation.
+ *
+ * Returns zero when there is no violation.
+ */
+double energy_violation(
+    int from,
+    int to,
+    double energy_used)
+{
+  double required_energy =
+      energy_used +
+      get_energy_consumption(from, to);
+
+  double violation =
+      required_energy - BATTERY_CAPACITY;
+
+  if (violation < 0.0)
+  {
+    violation = 0.0;
+  }
+
+  return violation;
+}
+
+/*
+ * Calculates the vehicle-capacity constraint violation.
+ *
+ * Returns zero when there is no violation.
+ */
+double capacity_violation(
+    double capacity_used,
+    double customer_demand)
+{
+  double violation =
+      capacity_used +
+      customer_demand -
+      MAX_CAPACITY;
+
+  if (violation < 0.0)
+  {
+    violation = 0.0;
+  }
+
+  return violation;
+}
+
+/*
+ * Adds a static penalty according to:
+ *
+ * penalty = C * d^k
+ *
+ * where:
+ *   C = penalty coefficient;
+ *   d = constraint violation;
+ *   k = penalty exponent.
+ */
+void add_penalty(
+    solution *route,
+    double coefficient,
+    double violation)
+{
+  if (violation <= EPS)
+  {
+    return;
+  }
+
+  route->penalty +=
+      coefficient *
+      pow(violation, PENALTY_EXPONENT);
+}
 
 /*
  * Finds the reachable recharge point that is closest
@@ -76,7 +147,7 @@ bool can_reach_node(
  *
  * The depot is also considered a recharge point.
  *
- * A recharge point is considered valid when:
+ * A recharge point is valid when:
  *
  *   1. it can be reached using the remaining battery;
  *   2. after recharging, the next customer can be
@@ -173,8 +244,7 @@ int nearest_recharge_to_customer(
             customer);
 
     /*
-     * After recharging, the vehicle must be able
-     * to reach the next customer directly.
+     * The customer must be reachable after recharging.
      */
     if (station_to_customer >
         BATTERY_CAPACITY + EPS)
@@ -182,27 +252,26 @@ int nearest_recharge_to_customer(
       continue;
     }
 
-    /*
-     * Select the reachable recharge point closest
-     * to the next customer.
-     *
-     * In case of a tie, select the recharge point
-     * closest to the current vehicle position.
-     */
     bool closer_to_customer =
         station_to_customer <
         best_distance_to_customer - EPS;
 
     bool same_customer_distance =
-        station_to_customer <=
-            best_distance_to_customer + EPS &&
-        station_to_customer >=
-            best_distance_to_customer - EPS;
+        fabs(
+            station_to_customer -
+            best_distance_to_customer) <= EPS;
 
     bool closer_to_current =
         energy_to_station <
         best_distance_from_current;
 
+    /*
+     * Select the reachable recharge point closest
+     * to the next customer.
+     *
+     * In case of a tie, select the one closest
+     * to the current position.
+     */
     if (closer_to_customer ||
         (same_customer_distance &&
          closer_to_current))
@@ -220,22 +289,12 @@ int nearest_recharge_to_customer(
   return best_point;
 }
 
-
 /*
  * Finds a reachable charging station that moves
  * the vehicle closer to the depot.
  *
- * This function allows the vehicle to use multiple
- * charging stations before reaching the depot.
- *
- * A charging station is considered valid when:
- *
- *   1. it can be reached using the remaining battery;
- *   2. it is closer to the depot than the current node.
- *
- * Returns:
- *   the selected charging-station index;
- *   -1 when no valid charging station exists.
+ * Multiple charging stations may therefore be used
+ * during the return trip to the depot.
  */
 int nearest_station_toward_depot(
     int from,
@@ -289,11 +348,8 @@ int nearest_station_toward_depot(
             DEPOT);
 
     /*
-     * The selected station must move the vehicle
+     * Each selected station must move the vehicle
      * closer to the depot.
-     *
-     * This condition also helps prevent cycles
-     * between charging stations.
      */
     if (station_to_depot >=
         current_distance_to_depot - EPS)
@@ -301,22 +357,14 @@ int nearest_station_toward_depot(
       continue;
     }
 
-    /*
-     * Select the reachable station closest
-     * to the depot.
-     *
-     * In case of a tie, select the station
-     * closest to the current vehicle position.
-     */
     bool closer_to_depot =
         station_to_depot <
         best_distance_to_depot - EPS;
 
     bool same_depot_distance =
-        station_to_depot <=
-            best_distance_to_depot + EPS &&
-        station_to_depot >=
-            best_distance_to_depot - EPS;
+        fabs(
+            station_to_depot -
+            best_distance_to_depot) <= EPS;
 
     bool closer_to_current =
         energy_to_station <
@@ -339,12 +387,11 @@ int nearest_station_toward_depot(
   return best_station;
 }
 
-
 /*
  * Recomputes the used vehicle capacity and consumed
  * battery energy using the current route.
  *
- * This function is called after a rollback.
+ * This function is used after a rollback.
  */
 void recompute_route_state(
     const solution *route,
@@ -370,14 +417,15 @@ void recompute_route_state(
             current);
 
     /*
-     * The depot restores both the vehicle capacity
-     * and the battery charge.
+     * The depot restores both load capacity
+     * and battery charge.
      */
     if (current == DEPOT)
     {
       capacity_used = 0.0;
       energy_used = 0.0;
     }
+
     /*
      * A charging station restores only
      * the battery charge.
@@ -386,8 +434,10 @@ void recompute_route_state(
     {
       energy_used = 0.0;
     }
+
     /*
-     * A customer increases the used vehicle capacity.
+     * Visiting a customer increases the used
+     * vehicle capacity.
      */
     else if (is_customer_node(current))
     {
@@ -397,16 +447,10 @@ void recompute_route_state(
   }
 }
 
-
 /*
- * Removes the last customer inserted into the route.
+ * Removes the last customer from the route.
  *
- * The chromosome index is decremented so that the
- * removed customer can be processed again.
- *
- * Returns:
- *   true  when the rollback is successfully performed;
- *   false when there is no customer available to remove.
+ * The removed customer will be processed again.
  */
 bool rollback_previous_customer(
     solution *route,
@@ -428,27 +472,17 @@ bool rollback_previous_customer(
       route->tour[route->steps - 1];
 
   /*
-   * Only a customer can be removed by this function.
+   * Only customers can be removed.
    */
   if (!is_customer_node(last_node))
   {
     return false;
   }
 
-  /*
-   * Remove the last customer from the route.
-   */
   route->steps--;
 
-  /*
-   * Process the removed customer again.
-   */
   customer_index--;
 
-  /*
-   * Restore the capacity and battery state associated
-   * with the remaining route.
-   */
   recompute_route_state(
       route,
       capacity_used,
@@ -457,14 +491,11 @@ bool rollback_previous_customer(
   return true;
 }
 
-
 /*
  * Inserts a recharge point into the route.
  *
- * The battery is fully recharged at both charging
- * stations and the depot.
- *
- * The vehicle capacity is reset only at the depot.
+ * Charging stations restore only the battery.
+ * The depot restores both battery and load capacity.
  */
 void insert_recharge_point(
     solution *route,
@@ -477,42 +508,71 @@ void insert_recharge_point(
 
   route->steps++;
 
-  /*
-   * The battery is fully recharged.
-   */
   energy_used = 0.0;
 
-  /*
-   * Visiting the depot also restores
-   * the vehicle load capacity.
-   */
   if (recharge_point == DEPOT)
   {
     capacity_used = 0.0;
   }
 }
 
+/*
+ * Finds the smallest battery violation required to
+ * reach any recharge point from the current node.
+ *
+ * The depot is also considered a recharge point.
+ *
+ * This value represents the distance from the current
+ * solution to battery feasibility.
+ */
+double minimum_recharge_violation(
+    int from,
+    double energy_used)
+{
+  double minimum_violation =
+      energy_violation(
+          from,
+          DEPOT,
+          energy_used);
+
+  for (int station = NUM_OF_CUSTOMERS + 1;
+       station < ACTUAL_PROBLEM_SIZE;
+       station++)
+  {
+    if (!is_charging_station(station))
+    {
+      continue;
+    }
+
+    if (station == from)
+    {
+      continue;
+    }
+
+    double violation =
+        energy_violation(
+            from,
+            station,
+            energy_used);
+
+    if (violation < minimum_violation)
+    {
+      minimum_violation = violation;
+    }
+  }
+
+  return minimum_violation;
+}
 
 /*
- * Builds a route from the customer sequence stored
- * in the chromosome.
+ * Builds a route from the chromosome.
  *
- * Route-construction strategy:
+ * The heuristic first attempts to maintain feasibility
+ * using charging stations, depot returns and rollback.
  *
- *   1. Try to visit the next customer directly.
- *   2. If the battery is insufficient, select the
- *      reachable recharge point closest to the
- *      next customer.
- *   3. If no recharge point is reachable, remove
- *      the previous customer and force a recharge
- *      before visiting it again.
- *   4. If the vehicle capacity is insufficient,
- *      return to the depot, using multiple charging
- *      stations when necessary.
- *   5. If the route cannot be repaired, penalize
- *      the solution with INT_MAX.
- *
- * This function does not return a boolean value.
+ * When the route cannot be repaired, the amount of
+ * constraint violation is stored as a static penalty
+ * instead of assigning INT_MAX.
  */
 void take_route(solution *route)
 {
@@ -522,22 +582,20 @@ void take_route(solution *route)
   double capacity_used = 0.0;
   double energy_used = 0.0;
 
-  /*
-   * After a rollback, a recharge point must be
-   * inserted before trying the removed customer again.
-   */
   bool force_recharge = false;
 
-  /*
-   * Prevent infinite loops caused by an instance or
-   * chromosome that cannot be decoded.
-   */
   const int max_iterations =
       20 * (ACTUAL_PROBLEM_SIZE +
             NUM_OF_CUSTOMERS);
 
   route->steps = 1;
-  route->tour_length = INT_MAX;
+
+  /*
+   * No penalty is assigned at the beginning.
+   */
+  route->penalty = 0.0;
+
+  route->tour_length = 0.0;
 
   route->tour[0] = DEPOT;
 
@@ -546,12 +604,17 @@ void take_route(solution *route)
     iterations++;
 
     /*
-     * Penalize the solution when the construction
-     * exceeds the iteration limit.
+     * If the heuristic repeatedly fails to construct
+     * the route, add a repair penalty.
      */
     if (iterations > max_iterations)
     {
-      route->tour_length = INT_MAX;
+      add_penalty(
+          route,
+          REPAIR_PENALTY,
+          1.0);
+
+      route->viable = false;
       return;
     }
 
@@ -559,17 +622,13 @@ void take_route(solution *route)
         route->tour[route->steps - 1];
 
     /*
-     * All customers have already been inserted.
+     * All customers have already been served.
      * The vehicle must now return to the depot.
      */
     if (customer_index >= NUM_OF_CUSTOMERS)
     {
-      /*
-       * The route is already closed.
-       */
       if (from == DEPOT)
       {
-        route->tour_length = 0.0;
         return;
       }
 
@@ -589,15 +648,12 @@ void take_route(solution *route)
         capacity_used = 0.0;
         energy_used = 0.0;
 
-        route->tour_length = 0.0;
         return;
       }
 
       /*
-       * The depot cannot be reached directly.
-       *
-       * Insert a reachable charging station that
-       * moves the vehicle closer to the depot.
+       * Otherwise, try to return through one or more
+       * charging stations.
        */
       int charging_station =
           nearest_station_toward_depot(
@@ -612,19 +668,11 @@ void take_route(solution *route)
             capacity_used,
             energy_used);
 
-        /*
-         * The next iteration will try to reach
-         * the depot again from the new station.
-         */
         continue;
       }
 
       /*
-       * No charging station toward the depot
-       * can be reached.
-       *
-       * Remove the last customer and rebuild
-       * the final section of the route.
+       * If no station is reachable, perform rollback.
        */
       if (rollback_previous_customer(
               route,
@@ -638,8 +686,21 @@ void take_route(solution *route)
 
       /*
        * The route cannot be repaired.
+       *
+       * Penalize according to the minimum additional
+       * battery energy required to reach a recharge point.
        */
-      route->tour_length = INT_MAX;
+      double violation =
+          minimum_recharge_violation(
+              from,
+              energy_used);
+
+      add_penalty(
+          route,
+          ENERGY_PENALTY,
+          violation);
+
+      route->viable = false;
       return;
     }
 
@@ -650,19 +711,28 @@ void take_route(solution *route)
         get_customer_demand(customer);
 
     /*
-     * A customer whose individual demand exceeds
-     * the maximum vehicle capacity cannot be served.
+     * Penalize a customer whose individual demand
+     * exceeds the maximum vehicle capacity.
      */
     if (customer_demand >
         MAX_CAPACITY + EPS)
     {
-      route->tour_length = INT_MAX;
+      double violation =
+          customer_demand -
+          MAX_CAPACITY;
+
+      add_penalty(
+          route,
+          CAPACITY_PENALTY,
+          violation);
+
+      route->viable = false;
       return;
     }
 
     /*
-     * After a rollback, insert a recharge point
-     * before trying the removed customer again.
+     * After a rollback, a recharge point must be
+     * inserted before trying the customer again.
      */
     if (force_recharge)
     {
@@ -682,16 +752,12 @@ void take_route(solution *route)
 
         force_recharge = false;
 
-        /*
-         * The same customer will be processed again
-         * after the recharge.
-         */
         continue;
       }
 
       /*
-       * One rollback was not sufficient.
-       * Remove another customer and try again.
+       * If one rollback is not enough,
+       * continue moving backward.
        */
       if (rollback_previous_customer(
               route,
@@ -704,18 +770,23 @@ void take_route(solution *route)
       }
 
       /*
-       * No additional rollback can be performed.
+       * No further repair is possible.
        */
-      route->tour_length = INT_MAX;
+      double violation =
+          minimum_recharge_violation(
+              from,
+              energy_used);
+
+      add_penalty(
+          route,
+          ENERGY_PENALTY,
+          violation);
+      route->viable = false;
       return;
     }
 
     /*
-     * The current vehicle load is insufficient
-     * to serve the next customer.
-     *
-     * The vehicle must return to the depot before
-     * processing the same customer again.
+     * Check the vehicle load capacity.
      */
     if (capacity_used + customer_demand >
         MAX_CAPACITY + EPS)
@@ -736,18 +807,12 @@ void take_route(solution *route)
         capacity_used = 0.0;
         energy_used = 0.0;
 
-        /*
-         * The same customer will be processed again
-         * with a restored vehicle load.
-         */
         continue;
       }
 
       /*
-       * The depot cannot be reached directly.
-       *
-       * Move to a reachable charging station that
-       * makes progress toward the depot.
+       * If the depot cannot be reached directly,
+       * return through charging stations.
        */
       int charging_station =
           nearest_station_toward_depot(
@@ -762,20 +827,12 @@ void take_route(solution *route)
             capacity_used,
             energy_used);
 
-        /*
-         * The load is not reset at a charging station.
-         * The next iteration will continue trying
-         * to reach the depot.
-         */
         continue;
       }
 
       /*
-       * No charging station toward the depot
-       * can be reached.
-       *
-       * Remove the previous customer and force
-       * a recharge before visiting it again.
+       * No route toward the depot is available.
+       * Try rollback before applying a penalty.
        */
       if (rollback_previous_customer(
               route,
@@ -788,15 +845,25 @@ void take_route(solution *route)
       }
 
       /*
-       * The route cannot be repaired.
+       * The load-capacity violation is proportional
+       * to the amount by which capacity is exceeded.
        */
-      route->tour_length = INT_MAX;
+      double violation =
+          capacity_violation(
+              capacity_used,
+              customer_demand);
+
+      add_penalty(
+          route,
+          CAPACITY_PENALTY,
+          violation);
+      route->viable = false;
       return;
     }
 
     /*
-     * Visit the next customer directly when there
-     * is enough remaining battery charge.
+     * Visit the customer directly when the remaining
+     * battery charge is sufficient.
      */
     if (can_reach_node(
             from,
@@ -815,13 +882,14 @@ void take_route(solution *route)
           customer;
 
       route->steps++;
+
       customer_index++;
 
       continue;
     }
 
     /*
-     * The next customer cannot be reached directly.
+     * The customer cannot be reached directly.
      *
      * Select the reachable recharge point closest
      * to that customer.
@@ -840,18 +908,12 @@ void take_route(solution *route)
           capacity_used,
           energy_used);
 
-      /*
-       * The same customer will be processed again
-       * after the recharge.
-       */
       continue;
     }
 
     /*
-     * No recharge point can be reached.
-     *
-     * Remove the previous customer and force
-     * a recharge before trying it again.
+     * If no recharge point can be reached,
+     * perform rollback.
      */
     if (rollback_previous_customer(
             route,
@@ -864,9 +926,22 @@ void take_route(solution *route)
     }
 
     /*
-     * The route cannot be repaired.
+     * No repair is possible.
+     *
+     * Penalize according to the amount of battery
+     * capacity required beyond the available limit.
      */
-    route->tour_length = INT_MAX;
+    double violation =
+        energy_violation(
+            from,
+            customer,
+            energy_used);
+
+    add_penalty(
+        route,
+        ENERGY_PENALTY,
+        violation);
+    route->viable = false;
     return;
   }
 }
@@ -981,6 +1056,7 @@ void initialize_heuristic(int run)
     take_route(&population[i]);
 
     population[i].tour_length = fitness_evaluation(population[i].tour, population[i].steps);
+    population[i].tour_length += population[i].penalty;
 
     if (population[i].tour_length < best_sol->tour_length)
     {
@@ -997,7 +1073,6 @@ void initialize_heuristic(int run)
     offspring[i].tour_length = INT_MAX;
     offspring[i].weight = 0;
     offspring[i].viable = true;
-
   }
 }
 
@@ -1120,6 +1195,8 @@ void change_pop()
           offspring[0].tour,
           offspring[0].steps);
 
+  offspring[0].tour_length +=
+      offspring[0].penalty;
   /*
    * Search for the individual whose chromosome is
    * the most similar to the offspring chromosome.

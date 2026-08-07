@@ -2,12 +2,12 @@ from imports import *
 
 problem_instances = [
     "E-n22-k4.evrp",
-    #"E-n76-k7.evrp",
+    "E-n76-k7.evrp",
 ]
 
-mutation_rates = np.linspace(0.8, 0.95, num=1, endpoint=True, dtype=np.float32)
+mutation_rates = np.linspace(0.8, 0.95, num=3, endpoint=True, dtype=np.float32)
 
-crossover_rates = np.linspace(0.7, 0.95, num=1, endpoint=True, dtype=np.float32)
+crossover_rates = np.linspace(0.7, 0.95, num=3, endpoint=True, dtype=np.float32)
 
 mutation_methods = [
     "swp",
@@ -16,9 +16,9 @@ mutation_methods = [
     "inv",
 ]
 
-selection_pressures = np.linspace(1.5, 2.0, num=1, endpoint=True, dtype=np.float32)
+selection_pressures = np.linspace(1.5, 2.0, num=3, endpoint=True, dtype=np.float32)
 
-population_sizes = np.linspace(2**3, 2**5, num=1, endpoint=True, dtype=np.int16)
+population_sizes = np.linspace(2**3, 2**5, num=3, endpoint=True, dtype=np.int16)
 
 
 def execute_configuration(configuration):
@@ -89,7 +89,7 @@ configurations = list(
 )
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
-max_workers = min(4, os.cpu_count() or 1)
+max_workers = min(8, os.cpu_count() or 1)
 
 print(f"Total de configurações: {len(configurations)}")
 print(f"Execuções simultâneas: {max_workers}")
