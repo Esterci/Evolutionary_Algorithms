@@ -1056,6 +1056,7 @@ void initialize_heuristic(int run)
     take_route(&population[i]);
 
     population[i].tour_length = fitness_evaluation(population[i].tour, population[i].steps);
+    population[i].tour_length += population[i].penalty;
 
     if (population[i].tour_length < best_sol->tour_length)
     {
@@ -1194,6 +1195,8 @@ void change_pop()
           offspring[0].tour,
           offspring[0].steps);
 
+  offspring[0].tour_length +=
+      offspring[0].penalty;
   /*
    * Search for the individual whose chromosome is
    * the most similar to the offspring chromosome.
