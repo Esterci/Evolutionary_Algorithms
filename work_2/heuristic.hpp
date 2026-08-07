@@ -9,6 +9,7 @@ struct solution
   double weight;
   int *cromossome;
   bool viable;
+  double penalty;
   // the format of the solution is as follows:
   //*tour:  0 - 5 - 6 - 8 - 0 - 1 - 2 - 3 - 4 - 0 - 7 - 0
   //*steps: 12

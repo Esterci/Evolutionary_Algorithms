@@ -2,7 +2,7 @@ from imports import *
 
 problem_instances = [
     "E-n22-k4.evrp",
-    #"E-n76-k7.evrp",
+    "E-n76-k7.evrp",
 ]
 
 mutation_rates = np.linspace(0.8, 0.95, num=1, endpoint=True, dtype=np.float32)
@@ -88,7 +88,7 @@ configurations = list(
 ) 
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
-max_workers = min(4, os.cpu_count() or 1)
+max_workers = min(8, os.cpu_count() or 1)
 
 print(f"Total de configurações: {len(configurations)}")
 print(f"Execuções simultâneas: {max_workers}")
