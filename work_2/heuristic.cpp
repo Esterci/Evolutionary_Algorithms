@@ -552,6 +552,7 @@ void take_route(solution *route)
     if (iterations > max_iterations)
     {
       route->tour_length = INT_MAX;
+      route->viable = false;
       return;
     }
 
@@ -640,6 +641,7 @@ void take_route(solution *route)
        * The route cannot be repaired.
        */
       route->tour_length = INT_MAX;
+      route->viable = false;
       return;
     }
 
@@ -657,6 +659,7 @@ void take_route(solution *route)
         MAX_CAPACITY + EPS)
     {
       route->tour_length = INT_MAX;
+      route->viable = false;
       return;
     }
 
@@ -707,6 +710,7 @@ void take_route(solution *route)
        * No additional rollback can be performed.
        */
       route->tour_length = INT_MAX;
+      route->viable = false;
       return;
     }
 
@@ -791,6 +795,7 @@ void take_route(solution *route)
        * The route cannot be repaired.
        */
       route->tour_length = INT_MAX;
+      route->viable = false;
       return;
     }
 
@@ -867,6 +872,7 @@ void take_route(solution *route)
      * The route cannot be repaired.
      */
     route->tour_length = INT_MAX;
+    route->viable = false;
     return;
   }
 }
