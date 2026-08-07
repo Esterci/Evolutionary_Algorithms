@@ -20,6 +20,7 @@ selection_pressures = np.linspace(1.5, 2.0, num=1, endpoint=True, dtype=np.float
 
 population_sizes = np.linspace(2**3, 2**5, num=1, endpoint=True, dtype=np.int16)
 
+
 def execute_configuration(configuration):
     (
         mutation_rate,
@@ -43,7 +44,7 @@ def execute_configuration(configuration):
         mutation_method,
         str(selection_pressure),
         str(population_size),
-        "0"
+        "0",
     ]
 
     start = time.perf_counter()
@@ -85,7 +86,7 @@ configurations = list(
         population_sizes,
         problem_instances,
     )
-) 
+)
 
 # Ajuste conforme a quantidade de núcleos e o consumo de memória do ./main.
 max_workers = min(4, os.cpu_count() or 1)
