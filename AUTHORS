@@ -1,0 +1,11 @@
+Evolutionary Algorithms contributors
+=====================================
+
+The following contributors are identified from the repository's Git history:
+
+- Thiago Esterci Fernandes (commits also authored as "Esterci" and "Thiago")
+- aclaraverly
+
+Contribution history and authorship details are available with:
+
+    git shortlog -sne --all

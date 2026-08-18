@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Evolutionary Algorithms: EVRP and Differential Evolution Studies"
+type: software
+authors:
+  - family-names: "Fernandes"
+    given-names: "Thiago Esterci"
+  - name: "aclaraverly"
+repository-code: "https://github.com/Esterci/Evolutionary_Algorithms"
+url: "https://github.com/Esterci/Evolutionary_Algorithms"
+license: GPL-3.0-only
+year: 2026
