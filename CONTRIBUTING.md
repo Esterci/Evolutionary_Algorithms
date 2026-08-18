@@ -149,8 +149,10 @@ Python DE method, run a small deterministic check and the documented reference
 configuration, for example:
 
 ```bash
-python3 work_3/de.py 10 5 42
-python3 work_3/de.py 30 100 42
+python3 work_3/rastrigin/de_best_1_bin_adpt.py 10 5 42
+python3 work_3/rastrigin/de_best_1_bin_adpt.py 30 100 42
+python3 work_3/truss/de_best_1_bin_adpt.py
+python3 work_3/truss/plot_results.py
 ```
 
 When changing a notebook, restart its kernel and run all cells in order. Review
