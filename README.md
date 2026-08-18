@@ -36,8 +36,15 @@ a single route or execution.
 │   ├── route_plots/           Generated route plots
 │   └── tables/                Generated summary tables
 └── work_3/
-    ├── de.py                   Self-adaptive DE/rand/1/bin runner
-    └── de_study.ipynb         Two-dimensional DE/Rastrigin study
+    ├── rastrigin/
+    │   ├── de_best_1_bin_adpt.py  Self-adaptive DE runner
+    │   └── de_study.ipynb         Two-dimensional DE/Rastrigin study
+    └── truss/
+        ├── de_best_1_bin_adpt.py  Evaluation-budget DE scaffold
+        ├── plot_results.py         Independent-run convergence plots
+        ├── evolution_curves/      Per-seed convergence data
+        ├── evolution_plots/       Generated plots and aggregate curves
+        └── results/               Appended run-level results
 ```
 
 `work_1` and `work_2` are separate programs. Build and run each one from its
@@ -59,7 +66,7 @@ For the Python analysis and notebooks:
 - pandas
 - Matplotlib
 - SciPy
-- PyTorch (required by `work_3/de_study.ipynb`)
+- PyTorch (required by the `work_3` scripts and notebook)
 
 One possible Python setup is:
 
@@ -171,25 +178,25 @@ Then open one of the following:
   `evolution_curves/` files and creates statistical summaries, route plots,
   and convergence plots. Its relative paths assume that the notebook kernel
   runs with `work_2` as the working directory.
-- `work_3/de_study.ipynb` runs a reproducible `DE/rand/1/bin` experiment on the
+- `work_3/rastrigin/de_study.ipynb` runs a reproducible `DE/rand/1/bin` experiment on the
   two-dimensional Rastrigin function. It displays a contour map, a 3D surface
   with the best solution, and a convergence curve. The notebook uses seed 42,
   population size 30, `F = 0.5`, `CR = 0.9`, and 100 generations.
 
 ### Self-adaptive DE/rand/1/bin runner
 
-The DE method can be executed without plotting or notebook dependencies beyond
-PyTorch. From `work_3`, use:
+The Rastrigin DE method can be executed without plotting or notebook
+dependencies beyond PyTorch. From `work_3/rastrigin`, use:
 
 ```bash
-python3 de.py POPULATION_SIZE GENERATIONS SEED
+python3 de_best_1_bin_adpt.py POPULATION_SIZE GENERATIONS SEED
 ```
 
 For example, the notebook configuration is:
 
 ```bash
-cd work_3
-python3 de.py 30 100 42
+cd work_3/rastrigin
+python3 de_best_1_bin_adpt.py 30 100 42
 ```
 
 The script retains the sequential `DE/rand/1/bin` structure used in
@@ -205,6 +212,44 @@ and standard deviation (`unbiased=False`) of both adaptive parameters. This
 format is intended for automated collection by a future grid-search process.
 Means and standard deviations of performance must still be calculated across
 multiple independent seeds.
+
+The copied runner in `work_3/truss` stops at an exact objective-function
+evaluation budget instead of a generation limit. Configure
+`POPULATION_SIZE`, `DIMENSION`, `MAX_FITNESS_EVALUATIONS`, `EVALUATION_STEP`,
+and `NUMBER_OF_RUNS` at the beginning of the script, then run:
+
+```bash
+cd work_3/truss
+python3 de_best_1_bin_adpt.py
+```
+
+The initial population counts toward the budget. If the remaining budget is
+smaller than the population size, that many targets are selected randomly,
+without replacement, in the last partial generation. At present, this copied
+runner still contains the two-dimensional Rastrigin objective and is a scaffold
+for the truss objective. The default experiment performs 20 independent runs,
+using the run number as the seed (`1` through `20`). The function does not
+return an experimental result. It writes one convergence CSV per seed to
+`work_3/truss/evolution_curves/`, with columns `seed`,
+`fitness_evaluations`, `fit_mean`, and `fit_std`. Final results from all runs
+of the same configuration are appended as rows to one CSV in
+`work_3/truss/results/`. Running the script again appends another 20 rows.
+
+After generating the convergence CSVs, create the plots with:
+
+```bash
+cd work_3/truss
+python3 plot_results.py
+```
+
+The script identifies the execution with the lowest final objective value for
+each experimental configuration. It plots that execution's population mean
+fitness with a band of one population standard deviation and reports the best
+seed and the final-population mean and standard deviation of adaptive `F` and
+`CR`. All plot text is in Portuguese. This analysis does not compare different
+algorithms or models. A truss-structure plot cannot be produced until the
+optimization code records the truss geometry, connectivity, and optimized
+design variables.
 
 ## Results
 
@@ -232,8 +277,14 @@ Results are located at:
   notebook.
 - `work_2/evolution_plots/*.png`: generated fitness-curve figures.
 - `work_2/route_plots/*.png`: generated plots of the leading routes.
-- `work_3/de_study.ipynb`: DE numerical results and visualizations are shown
+- `work_3/rastrigin/de_study.ipynb`: DE numerical results and visualizations are shown
   directly in the notebook after executing its cells.
+- `work_3/truss/evolution_curves/*.csv`: population fitness mean and standard
+  deviation sampled by objective-function evaluation count.
+- `work_3/truss/results/*.csv`: appended run-level configurations, seeds, best
+  solutions, adaptive-parameter statistics, and convergence-curve paths.
+- `work_3/truss/evolution_plots/*.png`: convergence and population-dispersion
+  figures for the best execution of each experimental configuration.
 
 The EVRP statistics files are opened in append mode. Repeating exactly the
 same configuration adds data to the existing files; archive or rename prior
