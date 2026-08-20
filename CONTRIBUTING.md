@@ -151,6 +151,8 @@ configuration, for example:
 ```bash
 python3 work_3/rastrigin/de_best_1_bin_adpt.py
 python3 work_3/rastrigin/plot_results.py
+python3 work_3/gearbox/de_rand_1_bin_adpt.py
+python3 work_3/gearbox/plot_results.py
 ```
 
 When changing a notebook, restart its kernel and run all cells in order. Review

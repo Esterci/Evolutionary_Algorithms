@@ -36,9 +36,16 @@ a single route or execution.
 │   ├── route_plots/           Generated route plots
 │   └── tables/                Generated summary tables
 └── work_3/
-    └── rastrigin/
+    ├── rastrigin/
         ├── de_best_1_bin_adpt.py  Evaluation-budget DE runner
         ├── plot_results.py         Independent-run convergence plots
+        ├── result_analysis.ipynb  Statistical analysis notebook
+        ├── evolution_curves/      Per-seed convergence data
+        ├── evolution_plots/       Generated plots
+        └── results/               Appended run-level results
+    └── gearbox/
+        ├── de_rand_1_bin_adpt.py  Constrained speed-reducer DE runner
+        ├── plot_results.py         Fitness and constraint-violation plots
         ├── result_analysis.ipynb  Statistical analysis notebook
         ├── evolution_curves/      Per-seed convergence data
         ├── evolution_plots/       Generated plots
@@ -178,6 +185,8 @@ Then open one of the following:
   runs with `work_2` as the working directory.
 - `work_3/rastrigin/result_analysis.ipynb` summarizes the independent
   `DE/rand/1/bin` executions and their recorded convergence data.
+- `work_3/gearbox/result_analysis.ipynb` summarizes the independent constrained
+  speed-reducer executions, feasibility, and convergence data.
 
 ### Self-adaptive DE/rand/1/bin runner
 
@@ -221,6 +230,30 @@ seed and the final-population mean and standard deviation of adaptive `F` and
 `CR`. All plot text is in Portuguese. This analysis does not compare different
 algorithms or models.
 
+### Constrained speed-reducer runner
+
+The speed-reducer study uses self-adaptive `DE/rand/1/bin` with seven design
+variables, 11 inequality constraints, and a quadratic exterior penalty. The
+third design variable is rounded to an integer after initialization, mutation,
+and crossover repair. Configure the population, evaluation budget, sampling
+step, number of independent runs, feasibility tolerance, and penalty weight at
+the beginning of the script, then run:
+
+```bash
+cd work_3/gearbox
+python3 de_rand_1_bin_adpt.py
+python3 plot_results.py
+```
+
+The default configuration uses population size 30, an exact budget of 36,000
+objective-function evaluations, and seeds `1` and `2`. Each convergence CSV
+records penalized-fitness statistics and the mean and population standard
+deviation of every nonnegative constraint violation. Final summaries report
+the objective, penalty, feasibility, maximum violation, feasible percentage,
+adaptive parameters, and best design vector. Feasible solutions are ranked by
+the unpenalized objective; penalized fitness is used only as a fallback when a
+run has no feasible individual.
+
 ## Results
 
 Each EVRP execution writes files whose names encode the experimental
@@ -255,6 +288,14 @@ Results are located at:
   solutions, adaptive-parameter statistics, and convergence-curve paths.
 - `work_3/rastrigin/evolution_plots/*.png`: convergence and population-dispersion
   figures for the best execution of each experimental configuration.
+- `work_3/gearbox/result_analysis.ipynb`: statistical summaries of the
+  independent constrained speed-reducer executions.
+- `work_3/gearbox/evolution_curves/*.csv`: penalized-fitness and per-constraint
+  violation statistics sampled by objective-function evaluation count.
+- `work_3/gearbox/results/*.csv`: run-level objectives, penalties, feasibility,
+  adaptive-parameter statistics, and design vectors.
+- `work_3/gearbox/evolution_plots/*.png`: fitness and constraint-violation
+  figures for the selected execution.
 
 The EVRP statistics files are opened in append mode. Repeating exactly the
 same configuration adds data to the existing files; archive or rename prior
