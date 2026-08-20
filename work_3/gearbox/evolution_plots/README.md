@@ -13,5 +13,5 @@ execution with the lowest `best_f` and saves:
 The title reports the best seed and the final-population mean and standard
 deviation of the adaptive `F` and `CR` parameters. These statistics describe
 the final population of the best execution, not only its best individual. It
-also reports the single penalty weight shared by all constraints. The figures
-do not compare algorithms or models.
+also reports the percentage of feasible individuals in the final population.
+The figures do not compare algorithms or models.

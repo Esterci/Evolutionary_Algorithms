@@ -276,7 +276,7 @@ def plot_configuration(configuration, seed_curves, results_directory,
         violation_axis.grid(True, alpha=0.3)
         violation_axis.legend(ncol=3, fontsize=9)
 
-    violation_axis.set_xlim(1,500)
+        violation_axis.set_xlim(1, 500)
 
     figure.suptitle(
         f"Melhor seed: {best_seed} | Aptidão: "
