@@ -1,4 +1,4 @@
-"""Self-adaptive DE/rand/1/bin for the welded beam design problem."""
+"""Self-adaptive DE/rand/1/bin with a static penalty for welded-beam design."""
 
 import csv
 from pathlib import Path
@@ -11,27 +11,37 @@ DIMENSION = 4
 MAX_FITNESS_EVALUATIONS = 320_000
 EVALUATION_STEP = 30
 NUMBER_OF_RUNS = 35
-FEASIBILITY_TOLERANCE = 1e-10
+NUMBER_OF_CONSTRAINTS = 5
+FEASIBILITY_TOLERANCE = 1.0e-10
+PENALTY_WEIGHT = 1.0e12
 
 # Decision vector: x = [h, l, t, b].
 LOWER_BOUNDS = tc.tensor([0.125, 0.1, 0.1, 0.1], dtype=tc.float64)
 UPPER_BOUNDS = tc.tensor([10.0, 10.0, 10.0, 10.0], dtype=tc.float64)
 
 
-def welded_beam_problem(x):
-    """Return cost, constraints, violation and mechanical quantities."""
+def welded_beam_objective(x):
+    """Return the welded-beam cost for one solution or a population."""
+    h = x[..., 0]
+    length = x[..., 1]
+    t = x[..., 2]
+    b = x[..., 3]
+    return 1.10471 * h**2 * length + 0.04811 * t * b * (14.0 + length)
 
+
+def welded_beam_constraints(x):
+    """Return constraints and mechanical quantities.
+
+    The constraints use the convention g_j(x) >= 0.
+    """
     h = x[..., 0]
     length = x[..., 1]
     t = x[..., 2]
     b = x[..., 3]
 
-    cost = 1.10471 * h**2 * length + 0.04811 * t * b * (14.0 + length)
-
     alpha = tc.sqrt(0.25 * (length**2 + (h + t) ** 2))
 
-    # Correction: the classical formulation uses h*l in the denominator.
-    # Using h*t, as printed in the supplied PDF, does not reproduce Table 5.16.
+    # The classical formulation uses h*l in the denominator.
     tau_prime = 6000.0 / ((2.0**0.5) * h * length)
     tau_double_prime = (
         6000.0
@@ -56,7 +66,6 @@ def welded_beam_problem(x):
     critical_load = 64746.022 * (1.0 - 0.0282346 * t) * t * b**3
     deflection = 2.1952 / (t**3 * b)
 
-    # All constraints follow the PDF convention g_i(x) >= 0.
     constraints = tc.stack(
         (
             13600.0 - tau,
@@ -67,74 +76,146 @@ def welded_beam_problem(x):
         ),
         dim=-1,
     )
-    violation = tc.clamp(-constraints, min=0.0).sum(dim=-1)
     quantities = tc.stack((tau, sigma, critical_load, deflection), dim=-1)
-    return cost, constraints, violation, quantities
+    return constraints, quantities
 
 
-def candidate_is_better(trial_f, trial_v, target_f, target_v):
-    """Compare two candidates using feasibility rules."""
+def evaluate_welded_beam(x, penalty_weight=PENALTY_WEIGHT):
+    """Return penalized fitness, cost, violations, constraints and quantities."""
+    if penalty_weight < 0:
+        raise ValueError("penalty_weight must be nonnegative")
 
-    trial_feasible = trial_v <= FEASIBILITY_TOLERANCE
-    target_feasible = target_v <= FEASIBILITY_TOLERANCE
-    if trial_feasible and not target_feasible:
-        return True
-    if target_feasible and not trial_feasible:
-        return False
-    if trial_feasible and target_feasible:
-        return bool(trial_f < target_f)
-    return bool(trial_v < target_v)
+    objective = welded_beam_objective(x)
+    constraints, quantities = welded_beam_constraints(x)
+
+    # Because feasibility is g_j(x) >= 0, only negative values are violations.
+    violations = tc.clamp(-constraints, min=0.0)
+    penalty = penalty_weight * tc.sum(violations**2, dim=-1)
+    fitness = objective + penalty
+    return fitness, objective, violations, constraints, quantities
 
 
-def population_statistics(objective, violation):
-    """Return objective and feasibility statistics for one population."""
-
-    feasible = violation <= FEASIBILITY_TOLERANCE
-    feasible_values = objective[feasible]
-    return {
-        "objective_mean": objective.mean().item(),
-        "objective_std": objective.std(unbiased=False).item(),
-        "best_feasible_objective": (
-            feasible_values.min().item()
-            if feasible_values.numel()
-            else float("nan")
-        ),
-        "feasible_percentage": 100.0 * feasible.double().mean().item(),
-        "mean_violation": violation.mean().item(),
+def population_statistics(fitness, violations):
+    """Return penalized-fitness and constraint-violation statistics."""
+    statistics = {
+        "fit_mean": fitness.mean().item(),
+        "fit_std": fitness.std(unbiased=False).item(),
     }
+    for index in range(NUMBER_OF_CONSTRAINTS):
+        values = violations[:, index]
+        prefix = f"constraint_{index + 1}_violation"
+        statistics[f"{prefix}_mean"] = values.mean().item()
+        statistics[f"{prefix}_std"] = values.std(unbiased=False).item()
+    return statistics
 
 
-def save_csv(rows, output_path):
-    """Write a list of dictionaries to CSV."""
+def select_best_index(fitness, objectives, violations):
+    """Prefer the best feasible cost; use penalized fitness as fallback."""
+    feasible_mask = tc.all(violations <= FEASIBILITY_TOLERANCE, dim=-1)
+    feasible_indices = tc.nonzero(feasible_mask, as_tuple=False).flatten()
 
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if feasible_indices.numel() > 0:
+        local_best = tc.argmin(objectives[feasible_indices])
+        return feasible_indices[local_best], feasible_mask
+
+    return tc.argmin(fitness), feasible_mask
+
+
+def save_evolution_curve(
+    curve,
+    output_directory,
+    population_size,
+    seed,
+    max_fitness_evaluations,
+    evaluation_step,
+):
+    """Save one run using the complete configuration in its filename."""
+    output_directory = Path(output_directory)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    filename = (
+        f"seed-{seed}--pop-{population_size}"
+        f"--maxeval-{max_fitness_evaluations}--step-{evaluation_step}.csv"
+    )
+    output_path = output_directory / filename
+
     with output_path.open("w", newline="", encoding="utf-8") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(csv_file, fieldnames=curve[0].keys())
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(curve)
+
+    return output_path
+
+
+def save_final_result(
+    result,
+    output_directory,
+    population_size,
+    max_fitness_evaluations,
+    evaluation_step,
+):
+    """Append one run to the CSV identified by the experiment configuration."""
+    output_directory = Path(output_directory)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    filename = (
+        f"pop-{population_size}"
+        f"--maxeval-{max_fitness_evaluations}--step-{evaluation_step}.csv"
+    )
+    output_path = output_directory / filename
+    write_header = not output_path.exists() or output_path.stat().st_size == 0
+
+    if not write_header:
+        with output_path.open("r", newline="", encoding="utf-8") as csv_file:
+            existing_fields = csv.DictReader(csv_file).fieldnames or []
+        if existing_fields != list(result.keys()):
+            raise ValueError(f"incompatible CSV schema in {output_path}")
+
+    with output_path.open("a", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=result.keys())
+        if write_header:
+            writer.writeheader()
+        writer.writerow(result)
+
     return output_path
 
 
 def differential_evolution(
+    seed,
     population_size=POPULATION_SIZE,
     max_fitness_evaluations=MAX_FITNESS_EVALUATIONS,
     evaluation_step=EVALUATION_STEP,
-    seed=1,
+    lower_bound=LOWER_BOUNDS,
+    upper_bound=UPPER_BOUNDS,
+    penalty_weight=PENALTY_WEIGHT,
     output_directory=None,
+    results_directory=None,
 ):
-    """Minimize welded-beam cost with self-adaptive DE/rand/1/bin."""
-
+    """Minimize welded-beam cost with a quadratic static exterior penalty."""
     if population_size < 4:
         raise ValueError("population_size must be at least 4")
     if max_fitness_evaluations < population_size:
         raise ValueError("maximum evaluations must be at least population size")
+    if evaluation_step < 1:
+        raise ValueError("evaluation_step must be positive")
+    if lower_bound.shape != upper_bound.shape:
+        raise ValueError("bounds must have the same shape")
+    if tc.any(lower_bound >= upper_bound):
+        raise ValueError("each lower bound must be smaller than its upper bound")
 
+    dimension = len(lower_bound)
     generator = tc.Generator().manual_seed(seed)
-    population = LOWER_BOUNDS + (UPPER_BOUNDS - LOWER_BOUNDS) * tc.rand(
-        population_size, DIMENSION, dtype=tc.float64, generator=generator
+    population = lower_bound + (upper_bound - lower_bound) * tc.rand(
+        population_size,
+        dimension,
+        dtype=tc.float64,
+        generator=generator,
     )
-    objective, constraints, violation, quantities = welded_beam_problem(population)
+    (
+        fitness,
+        objectives,
+        violations,
+        constraints,
+        quantities,
+    ) = evaluate_welded_beam(population, penalty_weight)
     fitness_evaluations = population_size
 
     differential_weights = 0.3 + 0.6 * tc.rand(
@@ -144,24 +225,30 @@ def differential_evolution(
         population_size, dtype=tc.float64, generator=generator
     )
 
-    evolution_curve = [{
-        "seed": seed,
-        "fitness_evaluations": fitness_evaluations,
-        **population_statistics(objective, violation),
-    }]
+    evolution_curve = [
+        {
+            "seed": seed,
+            "fitness_evaluations": fitness_evaluations,
+            **population_statistics(fitness, violations),
+        }
+    ]
     next_curve_evaluation = fitness_evaluations + evaluation_step
+    completed_generations = 0
+    partial_generation_evaluations = 0
 
     while fitness_evaluations < max_fitness_evaluations:
         evaluations_this_generation = min(
-            population_size, max_fitness_evaluations - fitness_evaluations
+            population_size,
+            max_fitness_evaluations - fitness_evaluations,
         )
         new_population = population.clone()
-        new_objective = objective.clone()
+        new_fitness = fitness.clone()
+        new_objectives = objectives.clone()
+        new_violations = violations.clone()
         new_constraints = constraints.clone()
-        new_violation = violation.clone()
         new_quantities = quantities.clone()
-        new_weights = differential_weights.clone()
-        new_rates = crossover_rates.clone()
+        new_differential_weights = differential_weights.clone()
+        new_crossover_rates = crossover_rates.clone()
 
         if evaluations_this_generation < population_size:
             target_indices = tc.randperm(
@@ -173,89 +260,151 @@ def differential_evolution(
         for i in target_indices:
             available = tc.arange(population_size)
             available = available[available != i]
-            donors = available[
+            donor_indices = available[
                 tc.randperm(population_size - 1, generator=generator)[:3]
             ]
-            weight = differential_weights[i]
+
+            differential_weight = differential_weights[i]
             crossover_rate = crossover_rates[i]
 
-            mutant = population[donors[0]] + weight * (
-                population[donors[1]] - population[donors[2]]
+            mutant = population[donor_indices[0]] + differential_weight * (
+                population[donor_indices[1]] - population[donor_indices[2]]
             )
-            mutant = tc.maximum(tc.minimum(mutant, UPPER_BOUNDS), LOWER_BOUNDS)
+            mutant = tc.maximum(tc.minimum(mutant, upper_bound), lower_bound)
 
-            crossover_mask = tc.rand(
-                DIMENSION, generator=generator
-            ) < crossover_rate
-            forced_dimension = tc.randint(DIMENSION, (1,), generator=generator)
+            crossover_mask = (
+                tc.rand(dimension, generator=generator) < crossover_rate
+            )
+            forced_dimension = tc.randint(dimension, (1,), generator=generator)
             crossover_mask[forced_dimension] = True
             trial = tc.where(crossover_mask, mutant, population[i])
 
-            # Preserve the self-adaptation mechanism of the original code.
+            # Mutate encoded parameters only when all decision variables come
+            # from the mutant; otherwise the target parameters are inherited.
             if crossover_mask.all():
-                child_weight = (
-                    differential_weights[donors[0]]
-                    + weight
+                child_differential_weight = (
+                    differential_weights[donor_indices[0]]
+                    + differential_weight
                     * (
-                        differential_weights[donors[1]]
-                        - differential_weights[donors[2]]
+                        differential_weights[donor_indices[1]]
+                        - differential_weights[donor_indices[2]]
                     )
                 ).clamp(0.3, 0.9)
-                child_rate = (
-                    crossover_rates[donors[0]]
-                    + weight
-                    * (crossover_rates[donors[1]] - crossover_rates[donors[2]])
+                child_crossover_rate = (
+                    crossover_rates[donor_indices[0]]
+                    + differential_weight
+                    * (
+                        crossover_rates[donor_indices[1]]
+                        - crossover_rates[donor_indices[2]]
+                    )
                 ).clamp(0.9, 1.0)
             else:
-                child_weight = weight
-                child_rate = crossover_rate
+                child_differential_weight = differential_weight
+                child_crossover_rate = crossover_rate
 
-            trial_f, trial_g, trial_v, trial_q = welded_beam_problem(trial)
+            (
+                trial_fitness,
+                trial_objective,
+                trial_violations,
+                trial_constraints,
+                trial_quantities,
+            ) = evaluate_welded_beam(trial, penalty_weight)
             fitness_evaluations += 1
 
-            if candidate_is_better(
-                trial_f, trial_v, objective[i], violation[i]
-            ):
+            # Static-penalty selection: only penalized fitness is compared.
+            if trial_fitness < fitness[i]:
                 new_population[i] = trial
-                new_objective[i] = trial_f
-                new_constraints[i] = trial_g
-                new_violation[i] = trial_v
-                new_quantities[i] = trial_q
-                new_weights[i] = child_weight
-                new_rates[i] = child_rate
+                new_fitness[i] = trial_fitness
+                new_objectives[i] = trial_objective
+                new_violations[i] = trial_violations
+                new_constraints[i] = trial_constraints
+                new_quantities[i] = trial_quantities
+                new_differential_weights[i] = child_differential_weight
+                new_crossover_rates[i] = child_crossover_rate
 
-            if fitness_evaluations >= next_curve_evaluation:
-                evolution_curve.append({
-                    "seed": seed,
-                    "fitness_evaluations": fitness_evaluations,
-                    **population_statistics(new_objective, new_violation),
-                })
+            if fitness_evaluations == next_curve_evaluation:
+                evolution_curve.append(
+                    {
+                        "seed": seed,
+                        "fitness_evaluations": fitness_evaluations,
+                        **population_statistics(new_fitness, new_violations),
+                    }
+                )
                 next_curve_evaluation += evaluation_step
 
         population = new_population
-        objective = new_objective
+        fitness = new_fitness
+        objectives = new_objectives
+        violations = new_violations
         constraints = new_constraints
-        violation = new_violation
         quantities = new_quantities
-        differential_weights = new_weights
-        crossover_rates = new_rates
+        differential_weights = new_differential_weights
+        crossover_rates = new_crossover_rates
 
-    feasible = violation <= FEASIBILITY_TOLERANCE
-    if feasible.any():
-        feasible_indices = tc.where(feasible)[0]
-        best_index = feasible_indices[tc.argmin(objective[feasible])]
-    else:
-        best_index = tc.argmin(violation)
+        if evaluations_this_generation == population_size:
+            completed_generations += 1
+        else:
+            partial_generation_evaluations = evaluations_this_generation
+
+    best_index, feasible_mask = select_best_index(
+        fitness, objectives, violations
+    )
+    feasible_percentage = 100.0 * feasible_mask.to(tc.float64).mean().item()
+
+    if evolution_curve[-1]["fitness_evaluations"] != fitness_evaluations:
+        evolution_curve.append(
+            {
+                "seed": seed,
+                "fitness_evaluations": fitness_evaluations,
+                **population_statistics(fitness, violations),
+            }
+        )
+
+    base_directory = Path(__file__).resolve().parent
+    if output_directory is None:
+        output_directory = base_directory / "evolution_curves"
+    curve_path = save_evolution_curve(
+        evolution_curve,
+        output_directory,
+        population_size,
+        seed,
+        max_fitness_evaluations,
+        evaluation_step,
+    )
 
     best_x = population[best_index]
     result = {
-        "algorithm": "Self-adaptive DE/rand/1/bin with feasibility rules",
+        "algorithm": (
+            "Self-adaptive DE/rand/1/bin with quadratic static penalty"
+        ),
+        "best_f": fitness[best_index].item(),
+        "best_objective": objectives[best_index].item(),
+        "penalty": (fitness[best_index] - objectives[best_index]).item(),
+        "max_constraint_violation": violations[best_index].max().item(),
+        "is_feasible": bool(feasible_mask[best_index].item()),
+        "final_population_feasible_percentage": feasible_percentage,
+        "population_size": population_size,
+        "dimension": dimension,
+        "max_fitness_evaluations": max_fitness_evaluations,
+        "evaluation_step": evaluation_step,
+        "completed_generations": completed_generations,
+        "partial_generation_evaluations": partial_generation_evaluations,
         "seed": seed,
-        "best_cost": objective[best_index].item(),
-        "h": best_x[0].item(),
-        "l": best_x[1].item(),
-        "t": best_x[2].item(),
-        "b": best_x[3].item(),
+        "mean_differential_weight": differential_weights.mean().item(),
+        "std_differential_weight": (
+            differential_weights.std(unbiased=False).item()
+        ),
+        "mean_crossover_rate": crossover_rates.mean().item(),
+        "std_crossover_rate": crossover_rates.std(unbiased=False).item(),
+        "fitness_evaluations": fitness_evaluations,
+        "dtype": "float64",
+        "device": "cpu",
+        "evolution_curve_file": str(curve_path),
+        "penalty_weight": penalty_weight,
+        "best_x_0": best_x[0].item(),
+        "best_x_1": best_x[1].item(),
+        "best_x_2": best_x[2].item(),
+        "best_x_3": best_x[3].item(),
         "g1": constraints[best_index, 0].item(),
         "g2": constraints[best_index, 1].item(),
         "g3": constraints[best_index, 2].item(),
@@ -265,43 +414,28 @@ def differential_evolution(
         "sigma": quantities[best_index, 1].item(),
         "critical_load": quantities[best_index, 2].item(),
         "deflection": quantities[best_index, 3].item(),
-        "total_violation": violation[best_index].item(),
-        "feasible": bool(feasible[best_index]),
-        "mean_F": differential_weights.mean().item(),
-        "mean_CR": crossover_rates.mean().item(),
-        "fitness_evaluations": fitness_evaluations,
     }
 
-    if output_directory is not None:
-        save_csv(
-            evolution_curve,
-            Path(output_directory) / "curves" / f"seed-{seed}.csv",
-        )
+    if results_directory is None:
+        results_directory = base_directory / "results"
+    result_path = save_final_result(
+        result,
+        results_directory,
+        population_size,
+        max_fitness_evaluations,
+        evaluation_step,
+    )
+
+    print(f"Evolution curve saved to: {curve_path}")
+    print(f"Final result saved to: {result_path}")
     return result
 
 
 def main():
-    """Execute the 35 independent runs used in the dissertation."""
-
-    output_directory = Path(__file__).resolve().parent / "welded_beam_results"
-    results = []
+    """Execute all independent runs."""
     for run in range(1, NUMBER_OF_RUNS + 1):
-        result = differential_evolution(seed=run, output_directory=output_directory)
-        results.append(result)
-        print(
-            f"Run {run:02d}: C={result['best_cost']:.8f}, "
-            f"h={result['h']:.6f}, l={result['l']:.6f}, "
-            f"t={result['t']:.6f}, b={result['b']:.6f}, "
-            f"feasible={result['feasible']}"
-        )
-
-    result_path = save_csv(results, output_directory / "final_results.csv")
-    feasible_results = [result for result in results if result["feasible"]]
-    if not feasible_results:
-        raise RuntimeError("No feasible solution was found in the 35 runs")
-    best = min(feasible_results, key=lambda result: result["best_cost"])
-    print(f"Best result: {best}")
-    print(f"Results saved to: {result_path}")
+        print(f"Run {run}/{NUMBER_OF_RUNS} with seed {run}")
+        differential_evolution(seed=run)
 
 
 if __name__ == "__main__":
