@@ -3,26 +3,16 @@
 import csv
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import torch as tc
-
 
 POPULATION_SIZE = 30
 DIMENSION = 4
 MAX_FITNESS_EVALUATIONS = 320_000
 EVALUATION_STEP = 30
-NUMBER_OF_RUNS = 35
+NUMBER_OF_RUNS = 2
 NUMBER_OF_CONSTRAINTS = 5
-FEASIBILITY_TOLERANCE = 1.0e-10
-PENALTY_WEIGHT = 1.0e12
-
-CONSTRAINT_LABELS = (
-    "g1: shear stress",
-    "g2: normal stress",
-    "g3: geometry",
-    "g4: buckling load",
-    "g5: deflection",
-)
+FEASIBILITY_TOLERANCE = 1.0e-8
+PENALTY_WEIGHT = 1.0e4
 
 # Decision vector: x = [h, l, t, b].
 LOWER_BOUNDS = tc.tensor([0.125, 0.1, 0.1, 0.1], dtype=tc.float64)
@@ -56,15 +46,7 @@ def welded_beam_constraints(x):
         6000.0
         * (14.0 + 0.5 * length)
         * alpha
-        / (
-            2.0
-            * (
-                0.707
-                * h
-                * length
-                * (length**2 / 12.0 + 0.25 * (h + t) ** 2)
-            )
-        )
+        / (2.0 * (0.707 * h * length * (length**2 / 12.0 + 0.25 * (h + t) ** 2)))
     )
     tau = tc.sqrt(
         tau_prime**2
@@ -77,11 +59,11 @@ def welded_beam_constraints(x):
 
     constraints = tc.stack(
         (
-            13600.0 - tau,
-            30000.0 - sigma,
-            b - h,
-            critical_load - 6000.0,
-            0.25 - deflection,
+            1.0 - tau / 13600.0,
+            1.0 - sigma / 30000.0,
+            b / h - 1.0,
+            critical_load / 6000.0 - 1.0,
+            1.0 - deflection / 0.25,
         ),
         dim=-1,
     )
@@ -99,7 +81,7 @@ def evaluate_welded_beam(x, penalty_weight=PENALTY_WEIGHT):
 
     # Because feasibility is g_j(x) >= 0, only negative values are violations.
     violations = tc.clamp(-constraints, min=0.0)
-    penalty = penalty_weight * tc.sum(violations**2, dim=-1)
+    penalty = penalty_weight * tc.sum(violations, dim=-1)
     fitness = objective + penalty
     return fitness, objective, violations, constraints, quantities
 
@@ -155,43 +137,6 @@ def save_evolution_curve(
     return output_path
 
 
-def plot_mean_constraint_violations(
-    curve,
-    output_directory,
-    population_size,
-    seed,
-    max_fitness_evaluations,
-    evaluation_step,
-):
-    """Plot the mean violation of each constraint during one run."""
-    output_directory = Path(output_directory)
-    output_directory.mkdir(parents=True, exist_ok=True)
-    filename = (
-        f"mean-constraint-violations--seed-{seed}--pop-{population_size}"
-        f"--maxeval-{max_fitness_evaluations}--step-{evaluation_step}.png"
-    )
-    output_path = output_directory / filename
-    evaluations = [row["fitness_evaluations"] for row in curve]
-
-    figure, axis = plt.subplots(figsize=(10, 6))
-    for index, label in enumerate(CONSTRAINT_LABELS):
-        field = f"constraint_{index + 1}_violation_mean"
-        mean_violations = [row[field] for row in curve]
-        axis.plot(evaluations, mean_violations, linewidth=1.8, label=label)
-
-    # Symlog keeps zero visible while separating violations of different scales.
-    axis.set_yscale("symlog", linthresh=FEASIBILITY_TOLERANCE)
-    axis.set_xlabel("Fitness evaluations")
-    axis.set_ylabel("Mean constraint violation")
-    axis.set_title("Mean constraint violations during optimization")
-    axis.grid(True, which="both", linestyle="--", alpha=0.4)
-    axis.legend()
-    figure.tight_layout()
-    figure.savefig(output_path, dpi=300, bbox_inches="tight")
-    plt.close(figure)
-    return output_path
-
-
 def save_final_result(
     result,
     output_directory,
@@ -233,7 +178,6 @@ def differential_evolution(
     upper_bound=UPPER_BOUNDS,
     penalty_weight=PENALTY_WEIGHT,
     output_directory=None,
-    plots_directory=None,
     results_directory=None,
 ):
     """Minimize welded-beam cost with a quadratic static exterior penalty."""
@@ -298,9 +242,9 @@ def differential_evolution(
         new_crossover_rates = crossover_rates.clone()
 
         if evaluations_this_generation < population_size:
-            target_indices = tc.randperm(
-                population_size, generator=generator
-            )[:evaluations_this_generation].tolist()
+            target_indices = tc.randperm(population_size, generator=generator)[
+                :evaluations_this_generation
+            ].tolist()
         else:
             target_indices = range(population_size)
 
@@ -319,9 +263,7 @@ def differential_evolution(
             )
             mutant = tc.maximum(tc.minimum(mutant, upper_bound), lower_bound)
 
-            crossover_mask = (
-                tc.rand(dimension, generator=generator) < crossover_rate
-            )
+            crossover_mask = tc.rand(dimension, generator=generator) < crossover_rate
             forced_dimension = tc.randint(dimension, (1,), generator=generator)
             crossover_mask[forced_dimension] = True
             trial = tc.where(crossover_mask, mutant, population[i])
@@ -393,9 +335,7 @@ def differential_evolution(
         else:
             partial_generation_evaluations = evaluations_this_generation
 
-    best_index, feasible_mask = select_best_index(
-        fitness, objectives, violations
-    )
+    best_index, feasible_mask = select_best_index(fitness, objectives, violations)
     feasible_percentage = 100.0 * feasible_mask.to(tc.float64).mean().item()
 
     if evolution_curve[-1]["fitness_evaluations"] != fitness_evaluations:
@@ -419,22 +359,9 @@ def differential_evolution(
         evaluation_step,
     )
 
-    if plots_directory is None:
-        plots_directory = base_directory / "violation_plots"
-    violations_plot_path = plot_mean_constraint_violations(
-        evolution_curve,
-        plots_directory,
-        population_size,
-        seed,
-        max_fitness_evaluations,
-        evaluation_step,
-    )
-
     best_x = population[best_index]
     result = {
-        "algorithm": (
-            "Self-adaptive DE/rand/1/bin with quadratic static penalty"
-        ),
+        "algorithm": ("Self-adaptive DE/rand/1/bin with quadratic static penalty"),
         "best_f": fitness[best_index].item(),
         "best_objective": objectives[best_index].item(),
         "penalty": (fitness[best_index] - objectives[best_index]).item(),
@@ -449,16 +376,13 @@ def differential_evolution(
         "partial_generation_evaluations": partial_generation_evaluations,
         "seed": seed,
         "mean_differential_weight": differential_weights.mean().item(),
-        "std_differential_weight": (
-            differential_weights.std(unbiased=False).item()
-        ),
+        "std_differential_weight": (differential_weights.std(unbiased=False).item()),
         "mean_crossover_rate": crossover_rates.mean().item(),
         "std_crossover_rate": crossover_rates.std(unbiased=False).item(),
         "fitness_evaluations": fitness_evaluations,
         "dtype": "float64",
         "device": "cpu",
         "evolution_curve_file": str(curve_path),
-        "mean_constraint_violations_plot_file": str(violations_plot_path),
         "penalty_weight": penalty_weight,
         "best_x_0": best_x[0].item(),
         "best_x_1": best_x[1].item(),
@@ -486,7 +410,6 @@ def differential_evolution(
     )
 
     print(f"Evolution curve saved to: {curve_path}")
-    print(f"Constraint violations plot saved to: {violations_plot_path}")
     print(f"Final result saved to: {result_path}")
     return result
 

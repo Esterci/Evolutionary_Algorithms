@@ -17,6 +17,7 @@ CURVES_DIRECTORY = BASE_DIRECTORY / "evolution_curves"
 RESULTS_DIRECTORY = BASE_DIRECTORY / "results"
 PLOTS_DIRECTORY = BASE_DIRECTORY / "evolution_plots"
 MAX_PLOT_POINTS = 300
+NUMBER_OF_CONSTRAINTS = 5
 
 CURVE_FILENAME = re.compile(
     r"seed-(?P<seed>\d+)"
@@ -31,6 +32,9 @@ REQUIRED_COLUMNS = {
     "fit_mean",
     "fit_std",
 }
+for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+    REQUIRED_COLUMNS.add(f"constraint_{constraint}_violation_mean")
+    REQUIRED_COLUMNS.add(f"constraint_{constraint}_violation_std")
 
 RESULT_COLUMNS = {
     "best_f",
@@ -83,6 +87,15 @@ def load_curve_groups(curves_directory):
                 [float(row["fit_std"]) for row in rows]
             ),
         }
+        for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+            mean_column = f"constraint_{constraint}_violation_mean"
+            std_column = f"constraint_{constraint}_violation_std"
+            curve[mean_column] = np.array(
+                [float(row[mean_column]) for row in rows]
+            )
+            curve[std_column] = np.array(
+                [float(row[std_column]) for row in rows]
+            )
 
         seed = int(match.group("seed"))
         recorded_seeds = set(curve["seed"].tolist())
@@ -156,7 +169,7 @@ def load_best_result(configuration, results_directory):
 
 def plot_configuration(configuration, seed_curves, results_directory,
                        plots_directory):
-    """Plot the population-fitness distribution of the best run."""
+    """Plot fitness and constraint violations for the best run."""
 
     population_size, max_evaluations, evaluation_step = configuration
     best_result = load_best_result(configuration, results_directory)
@@ -172,15 +185,17 @@ def plot_configuration(configuration, seed_curves, results_directory,
     mean_fitness = curve["fit_mean"]
     fitness_std = curve["fit_std"]
 
-    figure, axis = plt.subplots(figsize=(12, 7))
-    axis.plot(
+    figure, axes = plt.subplots(2, 1, figsize=(12, 12))
+
+    fitness_axis = axes[0]
+    fitness_axis.plot(
         evaluations,
         mean_fitness,
         color="tab:blue",
         linewidth=2.0,
         label="Aptidão média da população",
     )
-    axis.fill_between(
+    fitness_axis.fill_between(
         evaluations,
         mean_fitness - fitness_std,
         mean_fitness + fitness_std,
@@ -189,11 +204,43 @@ def plot_configuration(configuration, seed_curves, results_directory,
         label="± 1 desvio-padrão da população",
     )
 
-    axis.set_xlabel("Avaliações da função objetivo")
-    axis.set_ylabel("Aptidão")
-    axis.set_title("Evolução da aptidão na melhor execução")
-    axis.grid(True, alpha=0.3)
-    axis.legend()
+    fitness_axis.set_xlabel("Avaliações da função objetivo")
+    fitness_axis.set_ylabel("Aptidão")
+    fitness_axis.set_title("Evolução da aptidão na melhor execução")
+    fitness_axis.grid(True, alpha=0.3)
+    fitness_axis.set_xlim(1,1400)
+    fitness_axis.set_ylim(0,)
+
+    fitness_axis.legend()
+
+    violation_axis = axes[1]
+    for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+        mean = curve[f"constraint_{constraint}_violation_mean"]
+        std = curve[f"constraint_{constraint}_violation_std"]
+        line, = violation_axis.plot(
+            evaluations,
+            mean,
+            linewidth=1.5,
+            label=f"Restrição {constraint}",
+        )
+        violation_axis.fill_between(
+            evaluations,
+            np.maximum(mean - std, 0.0),
+            mean + std,
+            color=line.get_color(),
+            alpha=0.12,
+        )
+
+    violation_axis.set_xlabel("Avaliações da função objetivo")
+    violation_axis.set_ylabel("Violação")
+    violation_axis.set_title(
+        "Violações médias por restrição (faixa: ± 1 desvio-padrão)"
+    )
+    violation_axis.grid(True, alpha=0.3)
+    violation_axis.set_xlim(1,1400)
+    violation_axis.set_ylim(0,)
+
+    violation_axis.legend(ncol=3, fontsize=9)
 
     figure.suptitle(
         "DE/rand/1/bin autoadaptativo\n"
@@ -205,7 +252,7 @@ def plot_configuration(configuration, seed_curves, results_directory,
         f"{float(best_result['std_crossover_rate']):.4f}",
         fontsize=14,
     )
-    figure.tight_layout(rect=(0, 0, 1, 0.87))
+    figure.tight_layout(rect=(0, 0, 1, 0.88))
 
     plots_directory = Path(plots_directory)
     plots_directory.mkdir(parents=True, exist_ok=True)
