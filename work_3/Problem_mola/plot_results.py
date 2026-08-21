@@ -1,4 +1,4 @@
-"""Create convergence plots for the independent DE runs."""
+"""Create fitness and constraint-violation plots for Problema da mola."""
 
 import csv
 import re
@@ -17,6 +17,9 @@ CURVES_DIRECTORY = BASE_DIRECTORY / "evolution_curves"
 RESULTS_DIRECTORY = BASE_DIRECTORY / "results"
 PLOTS_DIRECTORY = BASE_DIRECTORY / "evolution_plots"
 MAX_PLOT_POINTS = 300
+PLOT_EVALUATION_LIMIT = 500
+NUMBER_OF_CONSTRAINTS = 4
+PROBLEM_TITLE = "Problema da mola"
 
 CURVE_FILENAME = re.compile(
     r"seed-(?P<seed>\d+)"
@@ -31,9 +34,15 @@ REQUIRED_COLUMNS = {
     "fit_mean",
     "fit_std",
 }
+for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+    REQUIRED_COLUMNS.add(f"constraint_{constraint}_violation_mean")
+    REQUIRED_COLUMNS.add(f"constraint_{constraint}_violation_std")
 
 RESULT_COLUMNS = {
     "best_f",
+    "best_objective",
+    "max_constraint_violation",
+    "is_feasible",
     "population_size",
     "max_fitness_evaluations",
     "evaluation_step",
@@ -42,12 +51,12 @@ RESULT_COLUMNS = {
     "std_differential_weight",
     "mean_crossover_rate",
     "std_crossover_rate",
+    "penalty_weight",
 }
 
 
 def load_curve_groups(curves_directory):
     """Load curve files and group them by experimental configuration."""
-
     curve_groups = {}
 
     for curve_path in sorted(Path(curves_directory).glob("*.csv")):
@@ -58,9 +67,8 @@ def load_curve_groups(curves_directory):
 
         with curve_path.open("r", newline="", encoding="utf-8") as csv_file:
             reader = csv.DictReader(csv_file)
-            missing_columns = REQUIRED_COLUMNS.difference(
-                reader.fieldnames or ()
-            )
+            fieldnames = reader.fieldnames or ()
+            missing_columns = REQUIRED_COLUMNS.difference(fieldnames)
             if missing_columns:
                 missing = ", ".join(sorted(missing_columns))
                 raise ValueError(
@@ -83,6 +91,15 @@ def load_curve_groups(curves_directory):
                 [float(row["fit_std"]) for row in rows]
             ),
         }
+        for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+            mean_column = f"constraint_{constraint}_violation_mean"
+            std_column = f"constraint_{constraint}_violation_std"
+            curve[mean_column] = np.array(
+                [float(row[mean_column]) for row in rows]
+            )
+            curve[std_column] = np.array(
+                [float(row[std_column]) for row in rows]
+            )
 
         seed = int(match.group("seed"))
         recorded_seeds = set(curve["seed"].tolist())
@@ -108,7 +125,6 @@ def load_curve_groups(curves_directory):
 
 def reduce_curve(curve, max_plot_points):
     """Keep evenly spaced rows when a curve is too dense for plotting."""
-
     curve_length = len(curve["fitness_evaluations"])
     if curve_length <= max_plot_points:
         return curve
@@ -125,7 +141,6 @@ def reduce_curve(curve, max_plot_points):
 
 def load_best_result(configuration, results_directory):
     """Load the best recorded run for one experimental configuration."""
-
     population_size, max_evaluations, evaluation_step = configuration
     candidates = []
 
@@ -146,22 +161,43 @@ def load_best_result(configuration, results_directory):
 
     if not candidates:
         raise FileNotFoundError(
-            "No result row matches configuration "
+            "No static-penalty result row matches configuration "
             f"population={population_size}, max evaluations={max_evaluations}, "
             f"step={evaluation_step}"
+        )
+
+    current_schema_candidates = [
+        row for row in candidates
+        if "final_population_feasible_percentage" in row
+    ]
+    if current_schema_candidates:
+        candidates = current_schema_candidates
+
+    feasible_candidates = [
+        row for row in candidates
+        if row["is_feasible"].strip().lower() == "true"
+    ]
+    if feasible_candidates:
+        return min(
+            feasible_candidates,
+            key=lambda row: float(row["best_objective"]),
         )
 
     return min(candidates, key=lambda row: float(row["best_f"]))
 
 
-def plot_configuration(configuration, seed_curves, results_directory,
-                       plots_directory):
-    """Plot the population-fitness distribution of the best run."""
-
+def plot_configuration(
+    configuration,
+    seed_curves,
+    results_directory,
+    plots_directory,
+):
+    """Plot fitness and constraint violations for the best run."""
     population_size, max_evaluations, evaluation_step = configuration
     best_result = load_best_result(configuration, results_directory)
     best_seed = int(best_result["seed"])
     curves_by_seed = dict(seed_curves)
+
     if best_seed not in curves_by_seed:
         raise FileNotFoundError(
             f"Evolution curve for best seed {best_seed} was not found"
@@ -171,16 +207,21 @@ def plot_configuration(configuration, seed_curves, results_directory,
     evaluations = curve["fitness_evaluations"]
     mean_fitness = curve["fit_mean"]
     fitness_std = curve["fit_std"]
+    feasible_percentage = best_result.get(
+        "final_population_feasible_percentage"
+    )
 
-    figure, axis = plt.subplots(figsize=(12, 7))
-    axis.plot(
+    figure, axes = plt.subplots(2, 1, figsize=(12, 12))
+
+    fitness_axis = axes[0]
+    fitness_axis.plot(
         evaluations,
         mean_fitness,
         color="tab:blue",
         linewidth=2.0,
-        label="Aptidão média da população",
+        label="Aptidão penalizada média da população",
     )
-    axis.fill_between(
+    fitness_axis.fill_between(
         evaluations,
         mean_fitness - fitness_std,
         mean_fitness + fitness_std,
@@ -188,24 +229,59 @@ def plot_configuration(configuration, seed_curves, results_directory,
         alpha=0.2,
         label="± 1 desvio-padrão da população",
     )
+    fitness_axis.set_xlabel("Avaliações da função objetivo")
+    fitness_axis.set_ylabel("Aptidão penalizada")
+    fitness_axis.set_title(
+        "Evolução da aptidão penalizada na melhor execução"
+    )
+    fitness_axis.set_xlim(1, min(PLOT_EVALUATION_LIMIT, max_evaluations))
+    fitness_axis.grid(True, alpha=0.3)
+    fitness_axis.legend()
 
-    axis.set_xlabel("Avaliações da função objetivo")
-    axis.set_ylabel("Aptidão")
-    axis.set_title("Evolução da aptidão na melhor execução")
-    axis.grid(True, alpha=0.3)
-    axis.legend()
+    violation_axis = axes[1]
+    for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
+        mean = curve[f"constraint_{constraint}_violation_mean"]
+        std = curve[f"constraint_{constraint}_violation_std"]
+        line, = violation_axis.plot(
+            evaluations,
+            mean,
+            linewidth=1.5,
+            label=f"Restrição {constraint}",
+        )
+        violation_axis.fill_between(
+            evaluations,
+            np.maximum(mean - std, 0.0),
+            mean + std,
+            color=line.get_color(),
+            alpha=0.12,
+        )
+
+    violation_axis.set_xlabel("Avaliações da função objetivo")
+    violation_axis.set_ylabel("Violação")
+    violation_axis.set_title(
+        "Violações médias por restrição (faixa: ± 1 desvio-padrão)"
+    )
+    violation_axis.set_xlim(1, min(PLOT_EVALUATION_LIMIT, max_evaluations))
+    violation_axis.grid(True, alpha=0.3)
+    violation_axis.legend(ncol=3, fontsize=9)
 
     figure.suptitle(
-        "DE/rand/1/bin autoadaptativo\n"
-        f"Melhor seed: {best_seed} | Melhor aptidão: "
+        f"{PROBLEM_TITLE}\n"
+        f"Melhor seed: {best_seed} | Aptidão: "
         f"{float(best_result['best_f']):.6g}\n"
         f"F = {float(best_result['mean_differential_weight']):.4f} ± "
         f"{float(best_result['std_differential_weight']):.4f} | "
         f"CR = {float(best_result['mean_crossover_rate']):.4f} ± "
-        f"{float(best_result['std_crossover_rate']):.4f}",
+        f"{float(best_result['std_crossover_rate']):.4f}"
+        + (
+            f" | População viável = {float(feasible_percentage):.2f}%"
+            if feasible_percentage is not None
+            and feasible_percentage.strip() != ""
+            else ""
+        ),
         fontsize=14,
     )
-    figure.tight_layout(rect=(0, 0, 1, 0.87))
+    figure.tight_layout(rect=(0, 0, 1, 0.88))
 
     plots_directory = Path(plots_directory)
     plots_directory.mkdir(parents=True, exist_ok=True)
@@ -217,15 +293,15 @@ def plot_configuration(configuration, seed_curves, results_directory,
 
     figure.savefig(figure_path, dpi=300, bbox_inches="tight")
     plt.close(figure)
-
     print(f"Gráfico salvo em: {figure_path}")
 
 
-def create_plots(curves_directory=CURVES_DIRECTORY,
-                 results_directory=RESULTS_DIRECTORY,
-                 plots_directory=PLOTS_DIRECTORY):
-    """Create one convergence figure for every stored configuration."""
-
+def create_plots(
+    curves_directory=CURVES_DIRECTORY,
+    results_directory=RESULTS_DIRECTORY,
+    plots_directory=PLOTS_DIRECTORY,
+):
+    """Create one plot for every stored experimental configuration."""
     curve_groups = load_curve_groups(curves_directory)
     for configuration, seed_curves in sorted(curve_groups.items()):
         plot_configuration(
