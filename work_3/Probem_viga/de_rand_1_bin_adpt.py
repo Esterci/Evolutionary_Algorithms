@@ -3,6 +3,7 @@
 import csv
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import torch as tc
 
 
@@ -14,6 +15,14 @@ NUMBER_OF_RUNS = 35
 NUMBER_OF_CONSTRAINTS = 5
 FEASIBILITY_TOLERANCE = 1.0e-10
 PENALTY_WEIGHT = 1.0e12
+
+CONSTRAINT_LABELS = (
+    "g1: shear stress",
+    "g2: normal stress",
+    "g3: geometry",
+    "g4: buckling load",
+    "g5: deflection",
+)
 
 # Decision vector: x = [h, l, t, b].
 LOWER_BOUNDS = tc.tensor([0.125, 0.1, 0.1, 0.1], dtype=tc.float64)
@@ -146,6 +155,43 @@ def save_evolution_curve(
     return output_path
 
 
+def plot_mean_constraint_violations(
+    curve,
+    output_directory,
+    population_size,
+    seed,
+    max_fitness_evaluations,
+    evaluation_step,
+):
+    """Plot the mean violation of each constraint during one run."""
+    output_directory = Path(output_directory)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    filename = (
+        f"mean-constraint-violations--seed-{seed}--pop-{population_size}"
+        f"--maxeval-{max_fitness_evaluations}--step-{evaluation_step}.png"
+    )
+    output_path = output_directory / filename
+    evaluations = [row["fitness_evaluations"] for row in curve]
+
+    figure, axis = plt.subplots(figsize=(10, 6))
+    for index, label in enumerate(CONSTRAINT_LABELS):
+        field = f"constraint_{index + 1}_violation_mean"
+        mean_violations = [row[field] for row in curve]
+        axis.plot(evaluations, mean_violations, linewidth=1.8, label=label)
+
+    # Symlog keeps zero visible while separating violations of different scales.
+    axis.set_yscale("symlog", linthresh=FEASIBILITY_TOLERANCE)
+    axis.set_xlabel("Fitness evaluations")
+    axis.set_ylabel("Mean constraint violation")
+    axis.set_title("Mean constraint violations during optimization")
+    axis.grid(True, which="both", linestyle="--", alpha=0.4)
+    axis.legend()
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close(figure)
+    return output_path
+
+
 def save_final_result(
     result,
     output_directory,
@@ -187,6 +233,7 @@ def differential_evolution(
     upper_bound=UPPER_BOUNDS,
     penalty_weight=PENALTY_WEIGHT,
     output_directory=None,
+    plots_directory=None,
     results_directory=None,
 ):
     """Minimize welded-beam cost with a quadratic static exterior penalty."""
@@ -372,6 +419,17 @@ def differential_evolution(
         evaluation_step,
     )
 
+    if plots_directory is None:
+        plots_directory = base_directory / "violation_plots"
+    violations_plot_path = plot_mean_constraint_violations(
+        evolution_curve,
+        plots_directory,
+        population_size,
+        seed,
+        max_fitness_evaluations,
+        evaluation_step,
+    )
+
     best_x = population[best_index]
     result = {
         "algorithm": (
@@ -400,6 +458,7 @@ def differential_evolution(
         "dtype": "float64",
         "device": "cpu",
         "evolution_curve_file": str(curve_path),
+        "mean_constraint_violations_plot_file": str(violations_plot_path),
         "penalty_weight": penalty_weight,
         "best_x_0": best_x[0].item(),
         "best_x_1": best_x[1].item(),
@@ -427,6 +486,7 @@ def differential_evolution(
     )
 
     print(f"Evolution curve saved to: {curve_path}")
+    print(f"Constraint violations plot saved to: {violations_plot_path}")
     print(f"Final result saved to: {result_path}")
     return result
 
