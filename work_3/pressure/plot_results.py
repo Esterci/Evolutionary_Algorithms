@@ -16,7 +16,7 @@ BASE_DIRECTORY = Path(__file__).resolve().parent
 CURVES_DIRECTORY = BASE_DIRECTORY / "evolution_curves"
 RESULTS_DIRECTORY = BASE_DIRECTORY / "results"
 PLOTS_DIRECTORY = BASE_DIRECTORY / "evolution_plots"
-MAX_PLOT_POINTS = 12000000
+MAX_PLOT_POINTS = 600
 
 CURVE_FILENAME = re.compile(
     r"seed-(?P<seed>\d+)"
@@ -249,7 +249,7 @@ def plot_configuration(configuration, seed_curves, results_directory,
     axis.set_xlabel("Avaliações da função objetivo")
     axis.set_ylabel("Aptidão penalizada")
     axis.set_title("Evolução da aptidão penalizada na melhor execução")
-    axis.set_xlim(1, 300)
+    axis.set_xlim(1, 700)
     axis.grid(True, alpha=0.3)
     axis.legend()
 
@@ -275,7 +275,7 @@ def plot_configuration(configuration, seed_curves, results_directory,
         )
         violation_axis.grid(True, alpha=0.3)
         violation_axis.legend(ncol=3, fontsize=9)
-        violation_axis.set_xlim(1, 300)
+        violation_axis.set_xlim(1, 700)
 
     figure.suptitle(
         f"Melhor seed: {best_seed} | Aptidão: "

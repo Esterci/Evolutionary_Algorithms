@@ -11,7 +11,7 @@ EVALUATION_STEP = 30
 NUMBER_OF_RUNS = 2
 NUMBER_OF_CONSTRAINTS = 4
 FEASIBILITY_TOLERANCE = 1.0e-8
-PENALTY_WEIGHT = 1e12
+PENALTY_WEIGHT = 1e4
 THICKNESS_INCREMENT = 0.0625
 
 # The source prints 0.00625 as the lower thickness bound while requiring
@@ -61,7 +61,7 @@ def evaluate_pressure_vessel(x, penalty_weight=PENALTY_WEIGHT):
 
     objective = pressure_vessel_objective(x)
     violations = tc.clamp(constraint_values(x), min=0.0)
-    fitness = objective + tc.sum(penalty_weight * violations**2, dim=-1)
+    fitness = objective + tc.sum(penalty_weight * violations, dim=-1)
     return fitness, objective, violations
 
 
