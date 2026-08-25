@@ -133,7 +133,9 @@ def solve_pde(
         v = np.asarray(v_initial, dtype=float)
     expected_shape = (size_x, size_y)
     if u.shape != expected_shape or v.shape != expected_shape:
-        raise ValueError(f"u_initial and v_initial must have shape {expected_shape}")
+        raise ValueError(
+            f"u_initial and v_initial must have shape {expected_shape}"
+        )
     if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
         raise ValueError("initial arrays contain NaN or infinite values")
 
@@ -186,16 +188,12 @@ def solve_pde(
         laplacian_u = (u_right + u_left + u_up + u_down - 4.0 * u) / (h * h)
         laplacian_v = (v_right + v_left + v_up + v_down - 4.0 * v) / (h * h)
 
-        u = (
-            u
-            - (k / h) * (flux_x_u - flux_x_u_left + flux_y_u - flux_y_u_down)
-            + k * nu * laplacian_u
-        )
-        v = (
-            v
-            - (k / h) * (flux_x_v - flux_x_v_left + flux_y_v - flux_y_v_down)
-            + k * nu * laplacian_v
-        )
+        u = u - (k / h) * (
+            flux_x_u - flux_x_u_left + flux_y_u - flux_y_u_down
+        ) + k * nu * laplacian_u
+        v = v - (k / h) * (
+            flux_x_v - flux_x_v_left + flux_y_v - flux_y_v_down
+        ) + k * nu * laplacian_v
 
         if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
             raise FloatingPointError(
@@ -223,13 +221,18 @@ def _number_of_intervals(domain: list[float], spacing: float, name: str) -> int:
 
 def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     """Run the configured simulation and save arrays plus reproducibility data."""
+
+    # Define mesh and constant config paths
     mesh_path = config_directory / "mesh_properties.json"
     constants_path = config_directory / "constant_properties.json"
+
+    # Open files
     with mesh_path.open(encoding="utf-8") as mesh_file:
         mesh = json.load(mesh_file)
     with constants_path.open(encoding="utf-8") as constants_file:
         constants = json.load(constants_file)
 
+    # Check config files
     required_mesh_keys = {"h", "k", "x_dom", "y_dom", "t_dom"}
     missing_mesh_keys = required_mesh_keys.difference(mesh)
     if missing_mesh_keys:
@@ -237,6 +240,7 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     if "nu" not in constants:
         raise ValueError("constant_properties.json must define 'nu'")
 
+    # Define mesh parameters
     h = float(mesh["h"])
     k = float(mesh["k"])
     size_x = _number_of_intervals(mesh["x_dom"], h, "x_dom")
@@ -245,24 +249,22 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     if size_x < 2 or size_y < 2:
         raise ValueError("a 2D simulation requires at least two cells per direction")
 
+    # Define mesh
     x = mesh["x_dom"][0] + (np.arange(size_x, dtype=float) + 0.5) * h
     y = mesh["y_dom"][0] + (np.arange(size_y, dtype=float) + 0.5) * h
     x_grid, y_grid = np.meshgrid(x, y, indexing="ij")
-    phase_x = (
-        2.0
-        * np.pi
-        * (x_grid - mesh["x_dom"][0])
-        / (mesh["x_dom"][1] - mesh["x_dom"][0])
+
+    # Compute de initial conditions
+    phase_x = 2.0 * np.pi * (x_grid - mesh["x_dom"][0]) / (
+        mesh["x_dom"][1] - mesh["x_dom"][0]
     )
-    phase_y = (
-        2.0
-        * np.pi
-        * (y_grid - mesh["y_dom"][0])
-        / (mesh["y_dom"][1] - mesh["y_dom"][0])
+    phase_y = 2.0 * np.pi * (y_grid - mesh["y_dom"][0]) / (
+        mesh["y_dom"][1] - mesh["y_dom"][0]
     )
     u_initial = np.sin(phase_x) * np.cos(phase_y)
     v_initial = -np.cos(phase_x) * np.sin(phase_y)
 
+    # Solve PDE system
     u_history, v_history = solve_pde(
         size_t=time_steps + 1,
         size_x=size_x,
