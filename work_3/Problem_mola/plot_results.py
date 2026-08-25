@@ -71,9 +71,7 @@ def load_curve_groups(curves_directory):
             missing_columns = REQUIRED_COLUMNS.difference(fieldnames)
             if missing_columns:
                 missing = ", ".join(sorted(missing_columns))
-                raise ValueError(
-                    f"{curve_path.name} is missing columns: {missing}"
-                )
+                raise ValueError(f"{curve_path.name} is missing columns: {missing}")
             rows = list(reader)
 
         if not rows:
@@ -84,22 +82,14 @@ def load_curve_groups(curves_directory):
             "fitness_evaluations": np.array(
                 [int(row["fitness_evaluations"]) for row in rows]
             ),
-            "fit_mean": np.array(
-                [float(row["fit_mean"]) for row in rows]
-            ),
-            "fit_std": np.array(
-                [float(row["fit_std"]) for row in rows]
-            ),
+            "fit_mean": np.array([float(row["fit_mean"]) for row in rows]),
+            "fit_std": np.array([float(row["fit_std"]) for row in rows]),
         }
         for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
             mean_column = f"constraint_{constraint}_violation_mean"
             std_column = f"constraint_{constraint}_violation_std"
-            curve[mean_column] = np.array(
-                [float(row[mean_column]) for row in rows]
-            )
-            curve[std_column] = np.array(
-                [float(row[std_column]) for row in rows]
-            )
+            curve[mean_column] = np.array([float(row[mean_column]) for row in rows])
+            curve[std_column] = np.array([float(row[std_column]) for row in rows])
 
         seed = int(match.group("seed"))
         recorded_seeds = set(curve["seed"].tolist())
@@ -167,15 +157,13 @@ def load_best_result(configuration, results_directory):
         )
 
     current_schema_candidates = [
-        row for row in candidates
-        if "final_population_feasible_percentage" in row
+        row for row in candidates if "final_population_feasible_percentage" in row
     ]
     if current_schema_candidates:
         candidates = current_schema_candidates
 
     feasible_candidates = [
-        row for row in candidates
-        if row["is_feasible"].strip().lower() == "true"
+        row for row in candidates if row["is_feasible"].strip().lower() == "true"
     ]
     if feasible_candidates:
         return min(
@@ -207,9 +195,7 @@ def plot_configuration(
     evaluations = curve["fitness_evaluations"]
     mean_fitness = curve["fit_mean"]
     fitness_std = curve["fit_std"]
-    feasible_percentage = best_result.get(
-        "final_population_feasible_percentage"
-    )
+    feasible_percentage = best_result.get("final_population_feasible_percentage")
 
     figure, axes = plt.subplots(2, 1, figsize=(12, 12))
 
@@ -231,9 +217,7 @@ def plot_configuration(
     )
     fitness_axis.set_xlabel("Avaliações da função objetivo")
     fitness_axis.set_ylabel("Aptidão penalizada")
-    fitness_axis.set_title(
-        "Evolução da aptidão penalizada na melhor execução"
-    )
+    fitness_axis.set_title("Evolução da aptidão penalizada na melhor execução")
     fitness_axis.set_xlim(1, min(PLOT_EVALUATION_LIMIT, max_evaluations))
     fitness_axis.grid(True, alpha=0.3)
     fitness_axis.legend()
@@ -242,7 +226,7 @@ def plot_configuration(
     for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
         mean = curve[f"constraint_{constraint}_violation_mean"]
         std = curve[f"constraint_{constraint}_violation_std"]
-        line, = violation_axis.plot(
+        (line,) = violation_axis.plot(
             evaluations,
             mean,
             linewidth=1.5,
@@ -275,8 +259,7 @@ def plot_configuration(
         f"{float(best_result['std_crossover_rate']):.4f}"
         + (
             f" | População viável = {float(feasible_percentage):.2f}%"
-            if feasible_percentage is not None
-            and feasible_percentage.strip() != ""
+            if feasible_percentage is not None and feasible_percentage.strip() != ""
             else ""
         ),
         fontsize=14,

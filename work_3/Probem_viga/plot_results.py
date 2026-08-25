@@ -62,14 +62,10 @@ def load_curve_groups(curves_directory):
 
         with curve_path.open("r", newline="", encoding="utf-8") as csv_file:
             reader = csv.DictReader(csv_file)
-            missing_columns = REQUIRED_COLUMNS.difference(
-                reader.fieldnames or ()
-            )
+            missing_columns = REQUIRED_COLUMNS.difference(reader.fieldnames or ())
             if missing_columns:
                 missing = ", ".join(sorted(missing_columns))
-                raise ValueError(
-                    f"{curve_path.name} is missing columns: {missing}"
-                )
+                raise ValueError(f"{curve_path.name} is missing columns: {missing}")
             rows = list(reader)
 
         if not rows:
@@ -80,22 +76,14 @@ def load_curve_groups(curves_directory):
             "fitness_evaluations": np.array(
                 [int(row["fitness_evaluations"]) for row in rows]
             ),
-            "fit_mean": np.array(
-                [float(row["fit_mean"]) for row in rows]
-            ),
-            "fit_std": np.array(
-                [float(row["fit_std"]) for row in rows]
-            ),
+            "fit_mean": np.array([float(row["fit_mean"]) for row in rows]),
+            "fit_std": np.array([float(row["fit_std"]) for row in rows]),
         }
         for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
             mean_column = f"constraint_{constraint}_violation_mean"
             std_column = f"constraint_{constraint}_violation_std"
-            curve[mean_column] = np.array(
-                [float(row[mean_column]) for row in rows]
-            )
-            curve[std_column] = np.array(
-                [float(row[std_column]) for row in rows]
-            )
+            curve[mean_column] = np.array([float(row[mean_column]) for row in rows])
+            curve[std_column] = np.array([float(row[std_column]) for row in rows])
 
         seed = int(match.group("seed"))
         recorded_seeds = set(curve["seed"].tolist())
@@ -167,8 +155,7 @@ def load_best_result(configuration, results_directory):
     return min(candidates, key=lambda row: float(row["best_f"]))
 
 
-def plot_configuration(configuration, seed_curves, results_directory,
-                       plots_directory):
+def plot_configuration(configuration, seed_curves, results_directory, plots_directory):
     """Plot fitness and constraint violations for the best run."""
 
     population_size, max_evaluations, evaluation_step = configuration
@@ -208,8 +195,10 @@ def plot_configuration(configuration, seed_curves, results_directory,
     fitness_axis.set_ylabel("Aptidão")
     fitness_axis.set_title("Evolução da aptidão na melhor execução")
     fitness_axis.grid(True, alpha=0.3)
-    fitness_axis.set_xlim(1,1400)
-    fitness_axis.set_ylim(0,)
+    fitness_axis.set_xlim(1, 1400)
+    fitness_axis.set_ylim(
+        0,
+    )
 
     fitness_axis.legend()
 
@@ -217,7 +206,7 @@ def plot_configuration(configuration, seed_curves, results_directory,
     for constraint in range(1, NUMBER_OF_CONSTRAINTS + 1):
         mean = curve[f"constraint_{constraint}_violation_mean"]
         std = curve[f"constraint_{constraint}_violation_std"]
-        line, = violation_axis.plot(
+        (line,) = violation_axis.plot(
             evaluations,
             mean,
             linewidth=1.5,
@@ -237,8 +226,10 @@ def plot_configuration(configuration, seed_curves, results_directory,
         "Violações médias por restrição (faixa: ± 1 desvio-padrão)"
     )
     violation_axis.grid(True, alpha=0.3)
-    violation_axis.set_xlim(1,1400)
-    violation_axis.set_ylim(0,)
+    violation_axis.set_xlim(1, 1400)
+    violation_axis.set_ylim(
+        0,
+    )
 
     violation_axis.legend(ncol=3, fontsize=9)
 
@@ -268,9 +259,11 @@ def plot_configuration(configuration, seed_curves, results_directory,
     print(f"Gráfico salvo em: {figure_path}")
 
 
-def create_plots(curves_directory=CURVES_DIRECTORY,
-                 results_directory=RESULTS_DIRECTORY,
-                 plots_directory=PLOTS_DIRECTORY):
+def create_plots(
+    curves_directory=CURVES_DIRECTORY,
+    results_directory=RESULTS_DIRECTORY,
+    plots_directory=PLOTS_DIRECTORY,
+):
     """Create one convergence figure for every stored configuration."""
 
     curve_groups = load_curve_groups(curves_directory)

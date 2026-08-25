@@ -17,9 +17,7 @@ def rastrigin(x):
     """Evaluate the Rastrigin function along the last tensor dimension."""
 
     dimension = x.shape[-1]
-    return 10.0 * dimension + tc.sum(
-        x**2 - 10.0 * tc.cos(2.0 * tc.pi * x), dim=-1
-    )
+    return 10.0 * dimension + tc.sum(x**2 - 10.0 * tc.cos(2.0 * tc.pi * x), dim=-1)
 
 
 def population_statistics(fitness):
@@ -31,8 +29,14 @@ def population_statistics(fitness):
     }
 
 
-def save_evolution_curve(curve, output_directory, population_size, seed,
-                         max_fitness_evaluations, evaluation_step):
+def save_evolution_curve(
+    curve,
+    output_directory,
+    population_size,
+    seed,
+    max_fitness_evaluations,
+    evaluation_step,
+):
     """Save one execution's convergence curve as CSV."""
 
     output_directory = Path(output_directory)
@@ -59,8 +63,9 @@ def save_evolution_curve(curve, output_directory, population_size, seed,
     return output_path
 
 
-def save_final_result(result, output_directory, population_size,
-                      max_fitness_evaluations, evaluation_step):
+def save_final_result(
+    result, output_directory, population_size, max_fitness_evaluations, evaluation_step
+):
     """Append one execution's final result to the configuration CSV."""
 
     output_directory = Path(output_directory)
@@ -99,9 +104,7 @@ def differential_evolution(
     if dimension < 1:
         raise ValueError("dimension must be positive")
     if max_fitness_evaluations < population_size:
-        raise ValueError(
-            "max_fitness_evaluations must be at least population_size"
-        )
+        raise ValueError("max_fitness_evaluations must be at least population_size")
     if evaluation_step < 1:
         raise ValueError("evaluation_step must be positive")
     if lower_bound >= upper_bound:
@@ -148,9 +151,9 @@ def differential_evolution(
         new_crossover_rates = crossover_rates.clone()
 
         if evaluations_this_generation < population_size:
-            target_indices = tc.randperm(
-                population_size, generator=generator
-            )[:evaluations_this_generation].tolist()
+            target_indices = tc.randperm(population_size, generator=generator)[
+                :evaluations_this_generation
+            ].tolist()
         else:
             target_indices = range(population_size)
 
@@ -165,17 +168,12 @@ def differential_evolution(
             crossover_rate = crossover_rates[i]
 
             mutant = population[donor_indices[0]] + differential_weight * (
-                population[donor_indices[1]]
-                - population[donor_indices[2]]
+                population[donor_indices[1]] - population[donor_indices[2]]
             )
             mutant.clamp_(lower_bound, upper_bound)
 
-            crossover_mask = (
-                tc.rand(dimension, generator=generator) < crossover_rate
-            )
-            forced_dimension = tc.randint(
-                dimension, (1,), generator=generator
-            )
+            crossover_mask = tc.rand(dimension, generator=generator) < crossover_rate
+            forced_dimension = tc.randint(dimension, (1,), generator=generator)
             crossover_mask[forced_dimension] = True
             trial = tc.where(crossover_mask, mutant, population[i])
 
@@ -271,9 +269,7 @@ def differential_evolution(
         "partial_generation_evaluations": partial_generation_evaluations,
         "seed": seed,
         "mean_differential_weight": differential_weights.mean().item(),
-        "std_differential_weight": differential_weights.std(
-            unbiased=False
-        ).item(),
+        "std_differential_weight": differential_weights.std(unbiased=False).item(),
         "mean_crossover_rate": crossover_rates.mean().item(),
         "std_crossover_rate": crossover_rates.std(unbiased=False).item(),
         "fitness_evaluations": fitness_evaluations,

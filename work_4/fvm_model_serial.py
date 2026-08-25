@@ -1,244 +1,330 @@
+"""Serial finite-volume solver for the two-dimensional viscous Burgers system.
+
+The conservative equations solved are
+
+    u_t + (u**2 / 2)_x + (u * v)_y = nu * Laplacian(u),
+    v_t + (u * v)_x + (v**2 / 2)_y = nu * Laplacian(v).
+
+The convective terms use a first-order donor-cell upwind flux and the diffusive
+terms use centered face fluxes. Time integration is forward Euler.
+"""
+
+import argparse
+import json
+from pathlib import Path
+
 import numpy as np
 
-
-# Função que descreve a taxa de variação da concentração de bactérias (Cb)
-def fb(Cb, Cn, i, j, cb, lambd_nb):
-    # O crescimento de bactérias é reduzido pela presença de neutrófilos (Cn)
-    # por um fator lambd_nb
-    return (cb - lambd_nb * Cn[i, j]) * Cb[i, j]
+Array = np.ndarray
 
 
-# Função que descreve a taxa de variação da concentração de neutrófilos (Cn)
-def fn(Cb, Cn, i, j, y_n, Cn_max, lambd_bn, mi_n):
-    # Crescimento dos neutrófilos depende da presença de bactérias (Cb)
-    # Também considera uma taxa de decaimento natural (mi_n) e a interação com
-    # bactérias (lambd_bn)
-    return (
-        y_n * Cb[i, j] * (Cn_max - Cn[i, j])
-        - lambd_bn * Cn[i, j] * Cb[i, j]
-        - mi_n * Cn[i, j]
+def _shift(field: Array, offset: int, axis: int, boundary: str) -> Array:
+    """Return neighboring cell values for a supported boundary condition."""
+    if boundary == "periodic":
+        return np.roll(field, shift=offset, axis=axis)
+
+    shifted = np.empty_like(field)
+    if axis == 0:
+        if offset == -1:
+            shifted[:-1, :] = field[1:, :]
+            shifted[-1, :] = field[-1, :]
+        else:
+            shifted[1:, :] = field[:-1, :]
+            shifted[0, :] = field[0, :]
+    else:
+        if offset == -1:
+            shifted[:, :-1] = field[:, 1:]
+            shifted[:, -1] = field[:, -1]
+        else:
+            shifted[:, 1:] = field[:, :-1]
+            shifted[:, 0] = field[:, 0]
+    return shifted
+
+
+def _physical_flux(u: Array, v: Array, axis: int) -> tuple[Array, Array]:
+    """Evaluate the x or y physical flux of the conservative system."""
+    if axis == 0:
+        return 0.5 * u * u, u * v
+    return u * v, 0.5 * v * v
+
+
+def _upwind_flux(
+    u_left: Array,
+    v_left: Array,
+    u_right: Array,
+    v_right: Array,
+    axis: int,
+) -> tuple[Array, Array]:
+    """Evaluate a first-order donor-cell flux at each right/up face."""
+    flux_u_left, flux_v_left = _physical_flux(u_left, v_left, axis)
+    flux_u_right, flux_v_right = _physical_flux(u_right, v_right, axis)
+
+    normal_velocity_left = u_left if axis == 0 else v_left
+    normal_velocity_right = u_right if axis == 0 else v_right
+    face_velocity = 0.5 * (normal_velocity_left + normal_velocity_right)
+    use_left_state = face_velocity >= 0.0
+    flux_u = np.where(use_left_state, flux_u_left, flux_u_right)
+    flux_v = np.where(use_left_state, flux_v_left, flux_v_right)
+    return flux_u, flux_v
+
+
+def _incoming_face_flux(
+    face_flux: Array, physical_flux: Array, axis: int, boundary: str
+) -> Array:
+    """Return the left/down face flux associated with every cell."""
+    if boundary == "periodic":
+        return np.roll(face_flux, shift=1, axis=axis)
+
+    incoming = np.empty_like(face_flux)
+    if axis == 0:
+        incoming[1:, :] = face_flux[:-1, :]
+        incoming[0, :] = physical_flux[0, :]
+    else:
+        incoming[:, 1:] = face_flux[:, :-1]
+        incoming[:, 0] = physical_flux[:, 0]
+    return incoming
+
+
+def solve_pde(
+    size_t: int,
+    size_x: int,
+    size_y: int,
+    h: float,
+    k: float,
+    nu: float,
+    u_initial: Array | None = None,
+    v_initial: Array | None = None,
+    boundary: str = "periodic",
+    verbose: bool = False,
+) -> tuple[Array, Array]:
+    """Solve the 2D viscous Burgers system on a uniform square-cell mesh.
+
+    ``u_initial`` and ``v_initial`` are optional arrays with shape
+    ``(size_x, size_y)``. Both must be supplied together. If omitted, a smooth
+    periodic field is generated. The histories have shape
+    ``(size_t, size_x, size_y)``.
+
+    ``boundary`` can be ``"periodic"`` or ``"zero_gradient"`` (homogeneous
+    Neumann). A ``ValueError`` is raised if the explicit stability estimate is
+    violated, rather than returning a partly filled history.
+    """
+    if size_t < 1 or size_x < 1 or size_y < 1:
+        raise ValueError("size_t, size_x, and size_y must be positive integers")
+    if h <= 0.0 or k <= 0.0:
+        raise ValueError("h and k must be positive")
+    if nu < 0.0:
+        raise ValueError("nu must be non-negative")
+    if boundary not in {"periodic", "zero_gradient"}:
+        raise ValueError("boundary must be 'periodic' or 'zero_gradient'")
+
+    x_coordinates = (np.arange(size_x, dtype=float) + 0.5) * h
+    y_coordinates = (np.arange(size_y, dtype=float) + 0.5) * h
+    x, y = np.meshgrid(x_coordinates, y_coordinates, indexing="ij")
+
+    if (u_initial is None) != (v_initial is None):
+        raise ValueError("u_initial and v_initial must be provided together")
+    if u_initial is None:
+        phase_x = 2.0 * np.pi * x / (size_x * h)
+        phase_y = 2.0 * np.pi * y / (size_y * h)
+        u = np.sin(phase_x) * np.cos(phase_y)
+        v = -np.cos(phase_x) * np.sin(phase_y)
+    else:
+        u = np.asarray(u_initial, dtype=float)
+        v = np.asarray(v_initial, dtype=float)
+    expected_shape = (size_x, size_y)
+    if u.shape != expected_shape or v.shape != expected_shape:
+        raise ValueError(f"u_initial and v_initial must have shape {expected_shape}")
+    if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
+        raise ValueError("initial arrays contain NaN or infinite values")
+
+    u_history = np.empty((size_t, size_x, size_y), dtype=float)
+    v_history = np.empty_like(u_history)
+    u_history[0] = u
+    v_history[0] = v
+
+    for time_index in range(1, size_t):
+        # Sufficient explicit estimate for advection plus two-dimensional diffusion.
+        max_directional_speed = float(np.max(np.abs(u)) + np.max(np.abs(v)))
+        cfl_advection = max_directional_speed * k / h
+        cfl_diffusion = 4.0 * nu * k / (h * h)
+        stability_number = cfl_advection + cfl_diffusion
+        if stability_number > 1.0 + 1.0e-12:
+            raise ValueError(
+                "explicit stability estimate violated at time index "
+                f"{time_index}: advective={cfl_advection:.6g}, "
+                f"diffusive={cfl_diffusion:.6g}, "
+                f"total={stability_number:.6g} > 1"
+            )
+
+        u_right = _shift(u, -1, axis=0, boundary=boundary)
+        v_right = _shift(v, -1, axis=0, boundary=boundary)
+        flux_x_u, flux_x_v = _upwind_flux(u, v, u_right, v_right, axis=0)
+
+        u_up = _shift(u, -1, axis=1, boundary=boundary)
+        v_up = _shift(v, -1, axis=1, boundary=boundary)
+        flux_y_u, flux_y_v = _upwind_flux(u, v, u_up, v_up, axis=1)
+
+        physical_x_u, physical_x_v = _physical_flux(u, v, axis=0)
+        physical_y_u, physical_y_v = _physical_flux(u, v, axis=1)
+        flux_x_u_left = _incoming_face_flux(
+            flux_x_u, physical_x_u, axis=0, boundary=boundary
+        )
+        flux_x_v_left = _incoming_face_flux(
+            flux_x_v, physical_x_v, axis=0, boundary=boundary
+        )
+        flux_y_u_down = _incoming_face_flux(
+            flux_y_u, physical_y_u, axis=1, boundary=boundary
+        )
+        flux_y_v_down = _incoming_face_flux(
+            flux_y_v, physical_y_v, axis=1, boundary=boundary
+        )
+
+        u_left = _shift(u, 1, axis=0, boundary=boundary)
+        v_left = _shift(v, 1, axis=0, boundary=boundary)
+        u_down = _shift(u, 1, axis=1, boundary=boundary)
+        v_down = _shift(v, 1, axis=1, boundary=boundary)
+        laplacian_u = (u_right + u_left + u_up + u_down - 4.0 * u) / (h * h)
+        laplacian_v = (v_right + v_left + v_up + v_down - 4.0 * v) / (h * h)
+
+        u = (
+            u
+            - (k / h) * (flux_x_u - flux_x_u_left + flux_y_u - flux_y_u_down)
+            + k * nu * laplacian_u
+        )
+        v = (
+            v
+            - (k / h) * (flux_x_v - flux_x_v_left + flux_y_v - flux_y_v_down)
+            + k * nu * laplacian_v
+        )
+
+        if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
+            raise FloatingPointError(
+                f"non-finite solution produced at time index {time_index}"
+            )
+
+        u_history[time_index] = u
+        v_history[time_index] = v
+        if verbose and time_index % max(1, (size_t - 1) // 10) == 0:
+            print(f"step={time_index}, stability_number={stability_number:.6g}")
+
+    return u_history, v_history
+
+
+def _number_of_intervals(domain: list[float], spacing: float, name: str) -> int:
+    """Return the integer number of uniform intervals in a configured domain."""
+    if len(domain) != 2 or domain[1] <= domain[0]:
+        raise ValueError(f"{name} must contain two increasing limits")
+    intervals = (domain[1] - domain[0]) / spacing
+    rounded_intervals = round(intervals)
+    if not np.isclose(intervals, rounded_intervals, rtol=0.0, atol=1.0e-10):
+        raise ValueError(f"{name} length must be an integer multiple of its spacing")
+    return int(rounded_intervals)
+
+
+def run_from_json(config_directory: Path, output_directory: Path) -> Path:
+    """Run the configured simulation and save arrays plus reproducibility data."""
+    mesh_path = config_directory / "mesh_properties.json"
+    constants_path = config_directory / "constant_properties.json"
+    with mesh_path.open(encoding="utf-8") as mesh_file:
+        mesh = json.load(mesh_file)
+    with constants_path.open(encoding="utf-8") as constants_file:
+        constants = json.load(constants_file)
+
+    required_mesh_keys = {"h", "k", "x_dom", "y_dom", "t_dom"}
+    missing_mesh_keys = required_mesh_keys.difference(mesh)
+    if missing_mesh_keys:
+        raise ValueError(f"missing mesh properties: {sorted(missing_mesh_keys)}")
+    if "nu" not in constants:
+        raise ValueError("constant_properties.json must define 'nu'")
+
+    h = float(mesh["h"])
+    k = float(mesh["k"])
+    size_x = _number_of_intervals(mesh["x_dom"], h, "x_dom")
+    size_y = _number_of_intervals(mesh["y_dom"], h, "y_dom")
+    time_steps = _number_of_intervals(mesh["t_dom"], k, "t_dom")
+    if size_x < 2 or size_y < 2:
+        raise ValueError("a 2D simulation requires at least two cells per direction")
+
+    x = mesh["x_dom"][0] + (np.arange(size_x, dtype=float) + 0.5) * h
+    y = mesh["y_dom"][0] + (np.arange(size_y, dtype=float) + 0.5) * h
+    x_grid, y_grid = np.meshgrid(x, y, indexing="ij")
+    phase_x = (
+        2.0
+        * np.pi
+        * (x_grid - mesh["x_dom"][0])
+        / (mesh["x_dom"][1] - mesh["x_dom"][0])
+    )
+    phase_y = (
+        2.0
+        * np.pi
+        * (y_grid - mesh["y_dom"][0])
+        / (mesh["y_dom"][1] - mesh["y_dom"][0])
+    )
+    u_initial = np.sin(phase_x) * np.cos(phase_y)
+    v_initial = -np.cos(phase_x) * np.sin(phase_y)
+
+    u_history, v_history = solve_pde(
+        size_t=time_steps + 1,
+        size_x=size_x,
+        size_y=size_y,
+        h=h,
+        k=k,
+        nu=float(constants["nu"]),
+        u_initial=u_initial,
+        v_initial=v_initial,
+        boundary=constants.get("boundary", "periodic"),
+        verbose=True,
     )
 
+    time = mesh["t_dom"][0] + np.arange(time_steps + 1, dtype=float) * k
 
-# Função para aplicar condições iniciais à concentração de bactérias (Cb)
-def apply_initial_conditions(Cb, b, c, size_x):
+    output_directory.mkdir(parents=True, exist_ok=True)
+    solution_path = output_directory / "solution.npz"
+    np.savez_compressed(
+        solution_path,
+        u=u_history,
+        v=v_history,
+        x=x,
+        y=y,
+        t=time,
+    )
+    metadata = {
+        "equations": [
+            "u_t + (u^2/2)_x + (u*v)_y = nu*Laplacian(u)",
+            "v_t + (u*v)_x + (v^2/2)_y = nu*Laplacian(v)",
+        ],
+        "numerical_flux": "first-order donor-cell upwind",
+        "time_integrator": "forward Euler",
+        "mesh": mesh,
+        "constants": constants,
+        "array_shape": [time_steps + 1, size_x, size_y],
+    }
+    with (output_directory / "metadata.json").open("w", encoding="utf-8") as file:
+        json.dump(metadata, file, indent=4)
+        file.write("\n")
+    return solution_path
 
-    x = np.linspace(0, 1, num=size_x, endpoint=False)
 
-    a = 0.3
+def main() -> None:
+    """Read command-line paths and run the configured Burgers simulation."""
+    work_directory = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config-dir",
+        type=Path,
+        default=work_directory / "control_dicts",
+        help="directory containing mesh_properties.json and constant_properties.json",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=work_directory / "fvm_sim",
+        help="directory in which solution.npz and metadata.json are saved",
+    )
+    arguments = parser.parse_args()
+    solution_path = run_from_json(arguments.config_dir, arguments.output_dir)
+    print(f"solution saved to {solution_path}")
 
-    cb = np.exp(-(((x - a) * b) ** 2)) / c
 
-    Cb[:, 0] = cb
-
-    return Cb
-
-
-# Função principal para resolver as equações diferenciais parciais usando diferenças finitas
-def solve_pde(
-    size_t,
-    size_x,
-    size_y,
-    h,
-    k,
-    Db,
-    Dn,
-    phi,
-    cb,
-    lambd_nb,
-    mi_n,
-    lambd_bn,
-    y_n,
-    Cn_max,
-    X_nb,
-    b,
-    c,
-    center,
-    radius,
-    verbose=False,
-):
-
-    # Inicializando as matrizes para concentrações de neutrófilos (Cn) e bactérias (Cb)
-    Cn_new = np.zeros((size_x, size_y))
-    Cb_new = np.zeros((size_x, size_y))
-
-    # Matrizes para armazenar as concentrações em cada passo de tempo
-    Cn_final = np.zeros((size_t, size_x, size_y))
-    Cb_final = np.zeros((size_t, size_x, size_y))
-
-    # Aplicando condições iniciais para a concentração de bactérias
-    cx_real, cy_real = center
-    cx_disc = cx_real / h
-    cy_disc = cy_real / h
-    radius_disc = radius / h
-
-    Cb_new = apply_initial_conditions(Cb_new, b, c, size_x)
-
-    # Armazenando as condições iniciais
-    Cb_final[0] = Cb_new
-    Cn_final[0] = Cn_new
-
-    # Loop sobre o tempo
-    for time in range(1, size_t):
-        # Atualizando as concentrações anteriores (passo temporal anterior)
-        Cn_old = Cn_new.copy()
-        Cb_old = Cb_new.copy()
-
-        global_max_v = 0
-
-        # Loop sobre o espaço (malha espacial)
-        for i in range(size_x):
-
-            for j in range(size_y):
-
-                diff_Cb_right = (
-                    0 if (i == size_x - 1) else (Cb_old[i + 1, j] - Cb_old[i, j])
-                )
-
-                diff_Cb_left = 0 if (i == 0) else (Cb_old[i, j] - Cb_old[i - 1, j])
-
-                diff_Cb_up = (
-                    0 if (j == size_y - 1) else (Cb_old[i, j + 1] - Cb_old[i, j])
-                )
-
-                diff_Cb_down = 0 if (j == 0) else (Cb_old[i, j] - Cb_old[i, j - 1])
-
-                max_vx = np.max(
-                    (
-                        abs(diff_Cb_left * X_nb / h),
-                        abs(diff_Cb_right * X_nb / h),
-                    )
-                )
-
-                max_vy = np.max(
-                    (
-                        abs(diff_Cb_down * X_nb / h),
-                        abs(diff_Cb_up * X_nb / h),
-                    )
-                )
-
-                max_v = max(max_vx, max_vy)
-
-                if max_v > global_max_v:
-                    global_max_v = max_v
-
-                # Atualizando as concentrações de bactérias
-                Cb_new[i][j] = (
-                    (k * Db)
-                    / (h * h * phi)
-                    * (diff_Cb_right - diff_Cb_left + diff_Cb_up - diff_Cb_down)
-                    + (k / phi) * fb(Cb_old, Cn_old, i, j, cb, lambd_nb)
-                    + Cb_old[i, j]
-                )
-
-                diff_Cn_right = (
-                    0 if i == size_x - 1 else ((Cn_old[i + 1, j] - Cn_old[i, j]))
-                )
-
-                diff_Cn_left = 0 if i == 0 else ((Cn_old[i, j] - Cn_old[i - 1, j]))
-
-                diff_Cn_up = (
-                    0 if j == size_y - 1 else ((Cn_old[i, j + 1] - Cn_old[i, j]))
-                )
-
-                diff_Cn_down = 0 if j == 0 else ((Cn_old[i, j] - Cn_old[i, j - 1]))
-
-                adv_right = (
-                    0
-                    if i == size_x - 1
-                    else (
-                        (Cn_old[i, j] * diff_Cb_right)
-                        if diff_Cb_right > 0
-                        else (Cn_old[i + 1, j] * diff_Cb_right)
-                    )
-                )
-
-                adv_left = (
-                    0
-                    if i == 0
-                    else (
-                        (Cn_old[i, j] * diff_Cb_left)
-                        if diff_Cb_left < 0
-                        else (Cn_old[i - 1, j] * diff_Cb_left)
-                    )
-                )
-
-                adv_up = (
-                    0
-                    if j == size_y - 1
-                    else (
-                        (Cn_old[i, j] * diff_Cb_up)
-                        if diff_Cb_up > 0
-                        else (Cn_old[i, j + 1] * diff_Cb_up)
-                    )
-                )
-
-                adv_down = (
-                    0
-                    if j == 0
-                    else (
-                        (Cn_old[i, j] * diff_Cb_down)
-                        if diff_Cb_down < 0
-                        else (Cn_old[i, j - 1] * diff_Cb_down)
-                    )
-                )
-
-                # Atualizando as concentrações de neutrófilos
-                Cn_new[i][j] = (
-                    (k * Dn)
-                    / (h * h * phi)
-                    * (diff_Cn_right - diff_Cn_left + diff_Cn_up - diff_Cn_down)
-                    - (X_nb * k)
-                    / (h * h * phi)
-                    * (adv_right - adv_left + adv_up - adv_down)
-                    + (k / phi)
-                    * fn(
-                        Cb_old,
-                        Cn_old,
-                        i,
-                        j,
-                        y_n,
-                        Cn_max,
-                        lambd_bn,
-                        mi_n,
-                    )
-                    + Cn_old[i, j]
-                )
-
-                # Armazenando os resultados para o passo de tempo atual
-                Cb_final[time][i][j] = Cb_new[i][j]
-                Cn_final[time][i][j] = Cn_new[i][j]
-
-        # Calcula critério de CFL
-
-        cfl_adv = global_max_v * k / h
-
-        cfl_dif = np.max((4 * Db * k / (h * h), 4 * Dn * k / (h * h)))
-
-        if cfl_adv > 1:
-            print(
-                "ERROR - CFL criterium not matched on iteration {} for advection: {}".format(
-                    time, cfl_adv
-                )
-            )
-            break
-
-        elif cfl_dif > 1:
-            print(
-                "ERROR - CFL criterium not matched on iteration {} for difusion: {}".format(
-                    time, cfl_dif
-                )
-            )
-            break
-
-        else:
-            if (time % (size_t // 10) == 0 or time == 0) and verbose:
-                print(
-                    "CFL criterium on iteration {}: {}".format(
-                        time, max(cfl_adv, cfl_dif)
-                    )
-                )
-
-    # Retornando as matrizes finais de concentração de bactérias e neutrófilos ao
-    # longo do tempo
-    return Cb_final, Cn_final
+if __name__ == "__main__":
+    main()

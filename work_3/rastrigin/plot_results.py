@@ -58,14 +58,10 @@ def load_curve_groups(curves_directory):
 
         with curve_path.open("r", newline="", encoding="utf-8") as csv_file:
             reader = csv.DictReader(csv_file)
-            missing_columns = REQUIRED_COLUMNS.difference(
-                reader.fieldnames or ()
-            )
+            missing_columns = REQUIRED_COLUMNS.difference(reader.fieldnames or ())
             if missing_columns:
                 missing = ", ".join(sorted(missing_columns))
-                raise ValueError(
-                    f"{curve_path.name} is missing columns: {missing}"
-                )
+                raise ValueError(f"{curve_path.name} is missing columns: {missing}")
             rows = list(reader)
 
         if not rows:
@@ -76,12 +72,8 @@ def load_curve_groups(curves_directory):
             "fitness_evaluations": np.array(
                 [int(row["fitness_evaluations"]) for row in rows]
             ),
-            "fit_mean": np.array(
-                [float(row["fit_mean"]) for row in rows]
-            ),
-            "fit_std": np.array(
-                [float(row["fit_std"]) for row in rows]
-            ),
+            "fit_mean": np.array([float(row["fit_mean"]) for row in rows]),
+            "fit_std": np.array([float(row["fit_std"]) for row in rows]),
         }
 
         seed = int(match.group("seed"))
@@ -154,8 +146,7 @@ def load_best_result(configuration, results_directory):
     return min(candidates, key=lambda row: float(row["best_f"]))
 
 
-def plot_configuration(configuration, seed_curves, results_directory,
-                       plots_directory):
+def plot_configuration(configuration, seed_curves, results_directory, plots_directory):
     """Plot the population-fitness distribution of the best run."""
 
     population_size, max_evaluations, evaluation_step = configuration
@@ -221,9 +212,11 @@ def plot_configuration(configuration, seed_curves, results_directory,
     print(f"Gráfico salvo em: {figure_path}")
 
 
-def create_plots(curves_directory=CURVES_DIRECTORY,
-                 results_directory=RESULTS_DIRECTORY,
-                 plots_directory=PLOTS_DIRECTORY):
+def create_plots(
+    curves_directory=CURVES_DIRECTORY,
+    results_directory=RESULTS_DIRECTORY,
+    plots_directory=PLOTS_DIRECTORY,
+):
     """Create one convergence figure for every stored configuration."""
 
     curve_groups = load_curve_groups(curves_directory)

@@ -343,9 +343,7 @@ def differential_evolution(
         else:
             partial_generation_evaluations = evaluations_this_generation
 
-    best_index, feasible_mask = select_best_index(
-        fitness, objectives, violations
-    )
+    best_index, feasible_mask = select_best_index(fitness, objectives, violations)
 
     feasible_percentage = 100.0 * feasible_mask.to(tc.float64).mean().item()
 
