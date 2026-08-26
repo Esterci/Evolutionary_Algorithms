@@ -12,8 +12,8 @@ terms use centered face fluxes. Time integration is forward Euler.
 import argparse
 import json
 from pathlib import Path
-
 import numpy as np
+import time as py_time
 
 Array = np.ndarray
 
@@ -124,11 +124,11 @@ def solve_pde(
     
     # Checking initial condition sizes
     expected_shape = (size_x, size_y)
-    if u.shape != expected_shape or v.shape != expected_shape:
+    if u_initial.shape != expected_shape or v_initial.shape != expected_shape:
         raise ValueError(
             f"u_initial and v_initial must have shape {expected_shape}"
         )
-    if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
+    if not np.all(np.isfinite(u_initial)) or not np.all(np.isfinite(v_initial)):
         raise ValueError("initial arrays contain NaN or infinite values")
     
     # Creating results matrices
@@ -157,16 +157,26 @@ def solve_pde(
                 f"total={stability_number:.6g} > 1"
             )
 
+        # Creating adjancet matrices
         u_right = _shift(u, -1, axis=0, boundary=boundary)
         v_right = _shift(v, -1, axis=0, boundary=boundary)
-        flux_x_u, flux_x_v = _upwind_flux(u, v, u_right, v_right, axis=0)
+        u_left = _shift(u, 1, axis=0, boundary=boundary)
+        v_left = _shift(v, 1, axis=0, boundary=boundary)
 
         u_up = _shift(u, -1, axis=1, boundary=boundary)
         v_up = _shift(v, -1, axis=1, boundary=boundary)
+        u_down = _shift(u, 1, axis=1, boundary=boundary)
+        v_down = _shift(v, 1, axis=1, boundary=boundary)
+
+        # Computing outcome upwind flux
+        flux_x_u, flux_x_v = _upwind_flux(u, v, u_right, v_right, axis=0)
         flux_y_u, flux_y_v = _upwind_flux(u, v, u_up, v_up, axis=1)
 
+        # Computing 'in cell' flux used on homegeneus Newman 
         physical_x_u, physical_x_v = _physical_flux(u, v, axis=0)
         physical_y_u, physical_y_v = _physical_flux(u, v, axis=1)
+
+        # Shift to obtain income fluxes
         flux_x_u_left = _incoming_face_flux(
             flux_x_u, physical_x_u, axis=0, boundary=boundary
         )
@@ -180,13 +190,11 @@ def solve_pde(
             flux_y_v, physical_y_v, axis=1, boundary=boundary
         )
 
-        u_left = _shift(u, 1, axis=0, boundary=boundary)
-        v_left = _shift(v, 1, axis=0, boundary=boundary)
-        u_down = _shift(u, 1, axis=1, boundary=boundary)
-        v_down = _shift(v, 1, axis=1, boundary=boundary)
+        # Computing diffusion term
         laplacian_u = (u_right + u_left + u_up + u_down - 4.0 * u) / (h * h)
         laplacian_v = (v_right + v_left + v_up + v_down - 4.0 * v) / (h * h)
 
+        # Computing solution
         u = u - (k / h) * (
             flux_x_u - flux_x_u_left + flux_y_u - flux_y_u_down
         ) + k * nu * laplacian_u
@@ -194,13 +202,9 @@ def solve_pde(
             flux_x_v - flux_x_v_left + flux_y_v - flux_y_v_down
         ) + k * nu * laplacian_v
 
-        if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
-            raise FloatingPointError(
-                f"non-finite solution produced at time index {time_index}"
-            )
-
         u_history[time_index] = u
         v_history[time_index] = v
+
         if verbose and time_index % max(1, (size_t - 1) // 10) == 0:
             print(f"step={time_index}, stability_number={stability_number:.6g}")
 
@@ -220,6 +224,8 @@ def _number_of_intervals(domain: list[float], spacing: float, name: str) -> int:
 
 def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     """Run the configured simulation and save arrays plus reproducibility data."""
+
+    timestamp = py_time.time()
 
     # Define mesh and constant config paths
     mesh_path = config_directory / "mesh_properties.json"
@@ -242,6 +248,18 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     # Define mesh parameters
     h = float(mesh["h"])
     k = float(mesh["k"])
+    nu = float(constants["nu"])
+    mean_velocity_u = float(constants.get("mean_velocity_u", 0.0))
+    mean_velocity_v = float(constants.get("mean_velocity_v", 0.0))
+    perturbation_amplitude = float(constants.get("perturbation_amplitude", 1.0))
+    initial_condition_parameters = np.array(
+        [mean_velocity_u, mean_velocity_v, perturbation_amplitude]
+    )
+    if not np.all(np.isfinite(initial_condition_parameters)):
+        raise ValueError("initial-condition parameters must be finite")
+    if perturbation_amplitude < 0.0:
+        raise ValueError("perturbation_amplitude must be non-negative")
+
     size_x = _number_of_intervals(mesh["x_dom"], h, "x_dom")
     size_y = _number_of_intervals(mesh["y_dom"], h, "y_dom")
     time_steps = _number_of_intervals(mesh["t_dom"], k, "t_dom")
@@ -260,8 +278,12 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     phase_y = 2.0 * np.pi * (y_grid - mesh["y_dom"][0]) / (
         mesh["y_dom"][1] - mesh["y_dom"][0]
     )
-    u_initial = np.sin(phase_x) * np.cos(phase_y)
-    v_initial = -np.cos(phase_x) * np.sin(phase_y)
+    u_initial = mean_velocity_u + perturbation_amplitude * np.sin(
+        phase_x
+    ) * np.cos(phase_y)
+    v_initial = mean_velocity_v - perturbation_amplitude * np.cos(
+        phase_x
+    ) * np.sin(phase_y)
 
     # Solve PDE system
     u_history, v_history = solve_pde(
@@ -270,7 +292,7 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
         size_y=size_y,
         h=h,
         k=k,
-        nu=float(constants["nu"]),
+        nu=nu,
         u_initial=u_initial,
         v_initial=v_initial,
         boundary=constants.get("boundary", "periodic"),
@@ -282,7 +304,7 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
 
     # Saving simulation data
     output_directory.mkdir(parents=True, exist_ok=True)
-    solution_path = output_directory / "solution.npz"
+    solution_path = output_directory / "solution_{}.npz".format(timestamp)
     np.savez_compressed(
         solution_path,
         u=u_history,
@@ -300,11 +322,21 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
         ],
         "numerical_flux": "first-order donor-cell upwind",
         "time_integrator": "forward Euler",
+        "initial_condition": {
+            "u": (
+                "mean_velocity_u + perturbation_amplitude"
+                "*sin(phase_x)*cos(phase_y)"
+            ),
+            "v": (
+                "mean_velocity_v - perturbation_amplitude"
+                "*cos(phase_x)*sin(phase_y)"
+            ),
+        },
         "mesh": mesh,
         "constants": constants,
         "array_shape": [time_steps + 1, size_x, size_y],
     }
-    with (output_directory / "metadata.json").open("w", encoding="utf-8") as file:
+    with (output_directory / "metadata_{}.json".format(timestamp)).open("w", encoding="utf-8") as file:
         json.dump(metadata, file, indent=4)
         file.write("\n")
     return solution_path
