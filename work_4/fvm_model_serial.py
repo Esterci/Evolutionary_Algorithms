@@ -92,8 +92,8 @@ def solve_pde(
     h: float,
     k: float,
     nu: float,
-    u_initial: Array | None = None,
-    v_initial: Array | None = None,
+    u_initial: Array,
+    v_initial: Array,
     boundary: str = "periodic",
     verbose: bool = False,
 ) -> tuple[Array, Array]:
@@ -116,21 +116,13 @@ def solve_pde(
         raise ValueError("nu must be non-negative")
     if boundary not in {"periodic", "zero_gradient"}:
         raise ValueError("boundary must be 'periodic' or 'zero_gradient'")
-
+    
+    # Calculating domain values for de mesh
     x_coordinates = (np.arange(size_x, dtype=float) + 0.5) * h
     y_coordinates = (np.arange(size_y, dtype=float) + 0.5) * h
     x, y = np.meshgrid(x_coordinates, y_coordinates, indexing="ij")
-
-    if (u_initial is None) != (v_initial is None):
-        raise ValueError("u_initial and v_initial must be provided together")
-    if u_initial is None:
-        phase_x = 2.0 * np.pi * x / (size_x * h)
-        phase_y = 2.0 * np.pi * y / (size_y * h)
-        u = np.sin(phase_x) * np.cos(phase_y)
-        v = -np.cos(phase_x) * np.sin(phase_y)
-    else:
-        u = np.asarray(u_initial, dtype=float)
-        v = np.asarray(v_initial, dtype=float)
+    
+    # Checking initial condition sizes
     expected_shape = (size_x, size_y)
     if u.shape != expected_shape or v.shape != expected_shape:
         raise ValueError(
@@ -138,12 +130,19 @@ def solve_pde(
         )
     if not np.all(np.isfinite(u)) or not np.all(np.isfinite(v)):
         raise ValueError("initial arrays contain NaN or infinite values")
-
+    
+    # Creating results matrices
     u_history = np.empty((size_t, size_x, size_y), dtype=float)
     v_history = np.empty_like(u_history)
-    u_history[0] = u
-    v_history[0] = v
 
+    # Initializaing values
+    u_history[0] = u_initial
+    v_history[0] = v_initial
+    
+    # Initializaing time iteration vector for variables
+    u = u_initial
+    v = v_initial
+    
     for time_index in range(1, size_t):
         # Sufficient explicit estimate for advection plus two-dimensional diffusion.
         max_directional_speed = float(np.max(np.abs(u)) + np.max(np.abs(v)))
@@ -253,7 +252,7 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
     x = mesh["x_dom"][0] + (np.arange(size_x, dtype=float) + 0.5) * h
     y = mesh["y_dom"][0] + (np.arange(size_y, dtype=float) + 0.5) * h
     x_grid, y_grid = np.meshgrid(x, y, indexing="ij")
-
+   
     # Compute de initial conditions
     phase_x = 2.0 * np.pi * (x_grid - mesh["x_dom"][0]) / (
         mesh["x_dom"][1] - mesh["x_dom"][0]
@@ -277,9 +276,11 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
         boundary=constants.get("boundary", "periodic"),
         verbose=True,
     )
-
+    
+    # Defining time mesh
     time = mesh["t_dom"][0] + np.arange(time_steps + 1, dtype=float) * k
 
+    # Saving simulation data
     output_directory.mkdir(parents=True, exist_ok=True)
     solution_path = output_directory / "solution.npz"
     np.savez_compressed(
@@ -290,6 +291,8 @@ def run_from_json(config_directory: Path, output_directory: Path) -> Path:
         y=y,
         t=time,
     )
+    
+    # Saving run metadata
     metadata = {
         "equations": [
             "u_t + (u^2/2)_x + (u*v)_y = nu*Laplacian(u)",
