@@ -254,6 +254,14 @@ adaptive parameters, and best design vector. Feasible solutions are ranked by
 the unpenalized objective; penalized fitness is used only as a fallback when a
 run has no feasible individual.
 
+## Hybrid PINN training
+
+`work_4/train_pinn_de_adam.py` applies the self-adaptive DE/rand/1/bin operators
+from `work_3` to the weights and biases of the existing conservative Burgers
+PINN, then starts FisiocomPINN's Adam training from the best individual. For
+configuration, stage budgets, validation and artifact details, see
+[the DE-to-Adam experiment guide](work_4/README_de_adam.md).
+
 ## Results
 
 Each EVRP execution writes files whose names encode the experimental

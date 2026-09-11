@@ -1,0 +1,47 @@
+{
+  "purpose": "Mathematical counterexample for interpreting the shared objective; not a trained run or an experimental outcome",
+  "constant_outputs": [
+    0.5,
+    0.25
+  ],
+  "raw_losses": {
+    "Initial": 0.25,
+    "Boundary": 0.0,
+    "PDE": 0.0
+  },
+  "cases": [
+    {
+      "log_vars": [
+        0.0,
+        -0.0,
+        -0.0
+      ],
+      "adaptive_objective": 0.25
+    },
+    {
+      "log_vars": [
+        0.0,
+        -5.0,
+        -5.0
+      ],
+      "adaptive_objective": -9.75
+    },
+    {
+      "log_vars": [
+        0.0,
+        -10.0,
+        -10.0
+      ],
+      "adaptive_objective": -19.75
+    },
+    {
+      "log_vars": [
+        0.0,
+        -20.0,
+        -20.0
+      ],
+      "adaptive_objective": -39.75
+    }
+  ],
+  "inference": "Constant fields satisfy homogeneous Neumann and conservative PDE residuals exactly while missing the sinusoidal initial condition. For s_Initial=0 and s_Boundary=s_PDE=-k, the objective equals Initial MSE-2k; it has no finite lower bound along this path. This does not prove a trained network reaches a constant field."
+}

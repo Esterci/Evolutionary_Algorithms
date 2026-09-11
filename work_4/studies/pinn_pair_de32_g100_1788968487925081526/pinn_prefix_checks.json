@@ -1,0 +1,62 @@
+[
+  {
+    "seed": 2028,
+    "loss_history": {
+      "Initial": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "Boundary": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "PDE": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      }
+    }
+  },
+  {
+    "seed": 2029,
+    "loss_history": {
+      "Initial": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "Boundary": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "PDE": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      }
+    }
+  },
+  {
+    "seed": 2030,
+    "loss_history": {
+      "Initial": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "Boundary": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      },
+      "PDE": {
+        "shared_updates": 5000,
+        "exactly_equal": true,
+        "maximum_absolute_difference": 0.0
+      }
+    }
+  }
+]

@@ -3,7 +3,6 @@
 *.csv
 *Zone.Identifier
 *.npz
-*.json
 main
 work_2/__pycache__/*
 work_1/__pycache__/*

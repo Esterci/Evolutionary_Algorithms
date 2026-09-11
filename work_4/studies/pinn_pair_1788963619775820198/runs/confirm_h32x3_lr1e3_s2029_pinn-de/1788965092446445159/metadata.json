@@ -1,0 +1,323 @@
+{
+  "status": "complete",
+  "seed": 2029,
+  "de_seed": 3029,
+  "architecture": [
+    32,
+    32,
+    32
+  ],
+  "activation": "Tanh",
+  "dtype": "torch.float32",
+  "device": "cuda",
+  "torch_version": "2.5.1",
+  "hardware": "NVIDIA GeForce GTX 1650",
+  "torch_num_threads": 1,
+  "epochs": 4852,
+  "de_generations": 20,
+  "adam_epochs": 4832,
+  "schedule_unit": "one DE generation or one Adam epoch; unequal computation per slot",
+  "optimizer": "self-adaptive DE/rand/1/bin -> external torch.optim.Adam in Trainer",
+  "learning_rate": 0.001,
+  "betas": [
+    0.9,
+    0.999
+  ],
+  "adaptive_loss": true,
+  "de_adaptive_loss_weights": true,
+  "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+  "loss_weight_names": [
+    "Initial",
+    "Boundary",
+    "PDE"
+  ],
+  "adaptive_weight_dtype": "torch.float32",
+  "adam_loss_weighting": "adaptive from selected DE log variances",
+  "loss_log_variance_bounds": null,
+  "loss_log_variance_initialization_box": [
+    -4.0,
+    4.0
+  ],
+  "initial_loss_weights": {
+    "Initial": 1.0,
+    "Boundary": 1.0,
+    "PDE": 1.0
+  },
+  "loss_weights": null,
+  "reference_loss_weights": {
+    "Initial": 1.0,
+    "Boundary": 1.0,
+    "PDE": 1.0
+  },
+  "fitness_formula": "sum(exp(-s_i)*MSE_i+s_i), i=Initial,Boundary,PDE",
+  "reference_fitness_formula": "MSE_initial + MSE_boundary + MSE_PDE",
+  "fitness_role": "direct weight optimization; no inner PINN training per individual",
+  "initialization": "Xavier uniform weights; zero biases; preserved as population[0]",
+  "de": {
+    "population_size": 8,
+    "generations": 20,
+    "lower_bound": -2.0,
+    "upper_bound": 2.0,
+    "seed": 3029,
+    "control_adaptation": "jde",
+    "adaptation_probability": 0.1,
+    "initialization": "local",
+    "initial_spread": 0.05,
+    "strategy": "rand/1/bin",
+    "synchronous": true,
+    "initialization_description": "population[0] is unchanged network; others uniform in initial +/- initial_spread*bound_width, clipped",
+    "mutation_factor_range": [
+      0.3,
+      0.9
+    ],
+    "crossover_rate_range": [
+      0.0,
+      1.0
+    ],
+    "control_adaptation_description": "independent F/CR uniform proposals before mutation; inherit only on strict fitness improvement",
+    "replacement": "strict greedy <; target retained on ties",
+    "constraint_handling": "clip network parameters only; adaptive log variances unconstrained",
+    "stopping": "fixed complete generation count",
+    "expected_fitness_evaluations": 168,
+    "fitness_evaluations": 168,
+    "nonfinite_evaluations": 0,
+    "best_fitness": -0.3376739025115967
+  },
+  "genome_dimension": 2309,
+  "network_dimension": 2306,
+  "genome_layout": [
+    {
+      "name": "backbone.layers.0.weight",
+      "shape": [
+        32,
+        3
+      ],
+      "start": 0,
+      "stop": 96
+    },
+    {
+      "name": "backbone.layers.0.bias",
+      "shape": [
+        32
+      ],
+      "start": 96,
+      "stop": 128
+    },
+    {
+      "name": "backbone.layers.2.weight",
+      "shape": [
+        32,
+        32
+      ],
+      "start": 128,
+      "stop": 1152
+    },
+    {
+      "name": "backbone.layers.2.bias",
+      "shape": [
+        32
+      ],
+      "start": 1152,
+      "stop": 1184
+    },
+    {
+      "name": "backbone.layers.4.weight",
+      "shape": [
+        32,
+        32
+      ],
+      "start": 1184,
+      "stop": 2208
+    },
+    {
+      "name": "backbone.layers.4.bias",
+      "shape": [
+        32
+      ],
+      "start": 2208,
+      "stop": 2240
+    },
+    {
+      "name": "backbone.layers.6.weight",
+      "shape": [
+        2,
+        32
+      ],
+      "start": 2240,
+      "stop": 2304
+    },
+    {
+      "name": "backbone.layers.6.bias",
+      "shape": [
+        2
+      ],
+      "start": 2304,
+      "stop": 2306
+    },
+    {
+      "name": "loss_log_var_Initial",
+      "shape": [
+        1
+      ],
+      "start": 2306,
+      "stop": 2307
+    },
+    {
+      "name": "loss_log_var_Boundary",
+      "shape": [
+        1
+      ],
+      "start": 2307,
+      "stop": 2308
+    },
+    {
+      "name": "loss_log_var_PDE",
+      "shape": [
+        1
+      ],
+      "start": 2308,
+      "stop": 2309
+    }
+  ],
+  "collocation": {
+    "method": "full deterministic FVM-aligned grid",
+    "random_sampling": false,
+    "resampling_frequency": 0,
+    "graph_refresh": "fresh coordinates at every objective or Adam evaluation",
+    "initial_points": 225,
+    "boundary_points": 6060,
+    "pde_points": 22500,
+    "batching": "full batch per loss"
+  },
+  "mesh": {
+    "h": 0.1,
+    "k": 0.01,
+    "x_dom": [
+      0,
+      1.5
+    ],
+    "y_dom": [
+      0,
+      1.5
+    ],
+    "t_dom": [
+      0,
+      1
+    ]
+  },
+  "constants": {
+    "nu": 0.01,
+    "boundary": "zero_gradient",
+    "mean_velocity_u": 0.5,
+    "mean_velocity_v": 0.25,
+    "perturbation_amplitude": 1.0
+  },
+  "input_order": [
+    "t",
+    "x",
+    "y"
+  ],
+  "output_order": [
+    "u",
+    "v"
+  ],
+  "physical_parameters_inferred": [],
+  "observational_training_data": false,
+  "normalization": "network coordinates to [-1,1]; physical PDE unchanged",
+  "independent_runs": 1,
+  "framework_commit": "ee4a05e01c4374d36ad19a3a6cc7266d8d441620",
+  "framework_directory": "/home/esterci/Repositorios/ppgmc/Pinn-Torch",
+  "framework_source_sha256": {
+    "Loss.py": "663dd5256e77aac3e8f5c242e1709d7ce1a8c59d0d2d8de4a5e0259d98fabb9c",
+    "Net.py": "8f3433dbca390a8a5f0c6d7abfff5a1de2bd657b61c55eada501f111124b8a3e",
+    "Trainer.py": "a5d09a9b00524dc79394e5d0b4c8544541c52dce578661e7ca990d9a05d96b4e"
+  },
+  "experiment_source_sha256": {
+    "work_4/differential_evolution.py": "66e93b3a5055728c05f22f701d6ec58146791af24e4476245c1e9e6a57eab27f",
+    "work_4/pinn_de_adam.py": "e2d58a0c53cbb1e7a7fcd9d37428631fa61bdbff08ca3b7f826fac5ff1862c7f",
+    "work_4/train_pinn_de_adam.py": "b2e02b8ae67a5ca794bdeef0beeb688c25e8430f43394acf60a51fa7f5101ad2",
+    "work_4/pinn_model.py": "d007402f355fb0c7e8f319fc51a7a7c01630b3f09994039f8a12ddecff969d89",
+    "work_4/train_pinn.py": "67918ed824eaee6e34ea064fdd75e8b17f0d338c8ebb0050eb9e22e45fd22139",
+    "work_4/fvm_model_serial.py": "1809bb03d48cb58180137f208072e4326264972061c0abc39aebb7e9fe752957",
+    "work_3/rastrigin/de_best_1_bin_adpt.py": "0938b89339ba6d54fcdaa70ba766cbbcb98a41450a6800bc63962eb0c08bd7a2"
+  },
+  "de_seconds": 4.594243647999974,
+  "de_best_losses": {
+    "Initial": 0.32228225469589233,
+    "Boundary": 0.13727420568466187,
+    "PDE": 0.2502998411655426
+  },
+  "de_best_reference_fitness": 0.7098563015460968,
+  "de_best_loss_weights": {
+    "Initial": 1.1345409154891968,
+    "Boundary": 2.2915494441986084,
+    "PDE": 1.5812543630599976
+  },
+  "de_best_loss_log_vars": {
+    "Initial": -0.12622809410095215,
+    "Boundary": -0.8292281627655029,
+    "PDE": -0.45821842551231384
+  },
+  "de_physics_validation": {
+    "rmse": [
+      0.4292905926704407,
+      0.5638347864151001
+    ],
+    "maximum_absolute": [
+      1.2864315509796143,
+      1.2061355113983154
+    ],
+    "points": 4725,
+    "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+  },
+  "adam_seconds": 232.62850528700073,
+  "final_losses": {
+    "Initial": 0.04767366498708725,
+    "Boundary": 0.0002770117425825447,
+    "PDE": 0.004440206103026867
+  },
+  "final_loss_log_vars": {
+    "Initial": -3.144709825515747,
+    "Boundary": -5.616791725158691,
+    "PDE": -4.732146739959717
+  },
+  "final_loss_weights": {
+    "Initial": 23.21293830871582,
+    "Boundary": 275.00567626953125,
+    "PDE": 113.5390396118164
+  },
+  "adam_weight_history_timing": "after each Adam update",
+  "final_reference_fitness": 0.05239088283269666,
+  "final_regularized_fitness": -11.806686401367188,
+  "physics_validation": {
+    "rmse": [
+      0.07713361084461212,
+      0.07116606831550598
+    ],
+    "maximum_absolute": [
+      0.62079256772995,
+      0.5406504273414612
+    ],
+    "points": 4725,
+    "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+  },
+  "fvm_comparison": {
+    "u": {
+      "rmse": 0.21208082311803242,
+      "mae": 0.14217405906236485,
+      "maximum_absolute": 1.1389314844142104,
+      "relative_l2": 0.36514964354604124
+    },
+    "v": {
+      "rmse": 0.21579630101692532,
+      "mae": 0.1364609361235225,
+      "maximum_absolute": 1.41799254363153,
+      "relative_l2": 0.4523595958006458
+    }
+  },
+  "fvm_seconds": 0.007751700000881101,
+  "inference_seconds": 0.07238270100060618,
+  "fvm_dtype": "float64",
+  "reference": "serial donor-cell FVM; cell-center point comparison",
+  "diagnostic_objective_evaluations": 2
+}

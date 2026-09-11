@@ -1,0 +1,21 @@
+{
+  "experiment_runs": 12,
+  "failed_experiment_runs": 0,
+  "tests_passed": 48,
+  "smoke_tests": "existing reduced CPU float64 PINN and DE-to-Adam end-to-end tests included",
+  "default_topologies_match": true,
+  "default_loss_evaluation_budget": 5000,
+  "python_compile": "passed",
+  "shell_syntax": "passed",
+  "shell_preset_argument_dry_run": "passed",
+  "source_whitespace_check": "passed",
+  "initial_test_failure": "Fixed a pre-existing test assumption requiring a one-generation 512-D sphere improvement; retained accept/reject control checks using a one-active-coordinate objective. DE algorithm unchanged.",
+  "post_study_source_sha256": {
+    "pinn_model.py": "438248a4ecf630b47ce99c82744fa84daf06aa44bd09d2c6b50b8e04d041c129",
+    "train_pinn.py": "ceb1559ceb93743a83f6dd5b71e2d5a897418b2e23c5978006eeb78958f73dfb",
+    "train_pinn_de_adam.py": "1e8e99141dd757d69562d30d60842c07a175ee545aa9ff36566ba0b3b09f0ff8",
+    "run_paired_study.py": "7b0f9465e7f784b551b1183d88c9054814d90aae86e983d15fdb085fea77a765",
+    "analyze_paired_study.py": "6fbbb302f701e33a0a8287cf2276062a06138015cead536a8801e821d6066585",
+    "tests/test_differential_evolution.py": "6735ca00e4e2ad7549f76a3de43eb46afda63c71e84e1f7032f365768e99263c"
+  }
+}

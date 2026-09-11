@@ -1,0 +1,29 @@
+Artifacts: /home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_1788963619775820198/runs/screen_h32x3_lr3e3_s2026_pinn-de/1788964184957699532
+DE: 20 generations, 8 individuals, 168 fitness evaluations, 2309 parameters; then 1832 Adam epochs.
+DE generation 0: best fitness 0.94301915, fixed reference 0.91000641, accepted 0/8, evaluations 8
+DE generation 10: best fitness 0.044700801, fixed reference 0.76678844, accepted 0/8, evaluations 88
+DE generation 20: best fitness -0.14971003, fixed reference 0.58979786, accepted 0/8, evaluations 168
+DE best fitness: -0.14971003; starting Adam.
+Iteration 0: total loss -0.1497, losses: [0.42071831226348877, 0.05026593804359436, 0.11881361156702042], weights: [-0.003      -0.3739962  -0.46359864], time: 0.0905s
+Iteration 250: total loss -2.8284, losses: [0.09275348484516144, 0.004458571784198284, 0.016591651365160942], weights: [-0.7691054 -1.1229008 -1.2144135], time: 0.0441s
+Iteration 500: total loss -4.9172, losses: [0.06292674690485, 0.0032215502578765154, 0.014534825459122658], weights: [-1.5314718 -1.8708069 -1.9350573], time: 0.0497s
+Iteration 750: total loss -6.7303, losses: [0.05401678383350372, 0.0023168507032096386, 0.01268023531883955], weights: [-2.17643   -2.6144452 -2.6292965], time: 0.0392s
+Iteration 1000: total loss -8.2051, losses: [0.05055055022239685, 0.0016543406527489424, 0.011441482231020927], weights: [-2.6455915 -3.35134   -3.2752113], time: 0.0428s
+Iteration 1250: total loss -9.4151, losses: [0.054952047765254974, 0.0011069264728575945, 0.007607797626405954], weights: [-2.860977  -4.079149  -3.8695862], time: 0.0447s
+Iteration 1500: total loss -10.5616, losses: [0.06382066011428833, 0.0005356167093850672, 0.004254853818565607], weights: [-2.8237195 -4.7961583 -4.4498873], time: 0.0402s
+Iteration 1750: total loss -11.3866, losses: [0.08105405420064926, 0.0010538542410358787, 0.0025272509083151817], weights: [-2.6428561 -5.4807177 -5.054001 ], time: 0.0388s
+{
+  "u": {
+    "rmse": 0.2484417992717576,
+    "mae": 0.1717076116956835,
+    "maximum_absolute": 1.2943452312480117,
+    "relative_l2": 0.4277540661728315
+  },
+  "v": {
+    "rmse": 0.26970610825025765,
+    "mae": 0.18326385643045257,
+    "maximum_absolute": 1.5013008231458427,
+    "relative_l2": 0.5653671797807264
+  }
+}
+Plot with: python work_4/plot_pinn_results.py --run-directory /home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_1788963619775820198/runs/screen_h32x3_lr3e3_s2026_pinn-de/1788964184957699532
