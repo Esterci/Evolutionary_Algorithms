@@ -17,10 +17,10 @@ import unittest
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from differential_evolution import DEConfig, differential_evolution
-from pinn_de_adam import PINNFitness, make_adam_trainer
+from methods.differential_evolution import DEConfig, differential_evolution
+from methods.pinn_de_adam import PINNFitness, make_adam_trainer
 from fisiocomPinn.Trainer import AdaptiveLossWeights
-from pinn_model import (
+from methods.pinn_model import (
     BurgersProblem,
     build_trainer,
     burgers_residual,
@@ -143,7 +143,7 @@ class PINNFitnessTests(unittest.TestCase):
                     terms = fitness.terms()
                 self.assertEqual(first, second)
                 self.assertEqual(
-                    first, 10 * terms["Initial"] + terms["Boundary"] + terms["PDE"]
+                    first, sum(weight * terms[loss.name] for loss, weight in zip(fitness.losses, trainer.lossesW))
                 )
                 self.assertTrue(
                     torch.isfinite(torch.tensor(list(terms.values()))).all()
@@ -196,8 +196,8 @@ class EvolvedLossWeightTests(unittest.TestCase):
                 self.assertEqual(upper.shape, expected.shape)
                 self.assertTrue((lower[:-3] == -2.0).all())
                 self.assertTrue((upper[:-3] == 2.0).all())
-                self.assertTrue((lower[-3:] == -4.0).all())
-                self.assertTrue((upper[-3:] == 4.0).all())
+                torch.testing.assert_close(lower[-3:], objective.initial_loss_log_vars - 4.0)
+                torch.testing.assert_close(upper[-3:], objective.initial_loss_log_vars + 4.0)
                 self.assertEqual(
                     [item["name"] for item in objective.layout[-3:]],
                     ["loss_log_var_Initial", "loss_log_var_Boundary", "loss_log_var_PDE"],
@@ -227,7 +227,7 @@ class EvolvedLossWeightTests(unittest.TestCase):
                             baseline.log_vars.copy_(candidate[-3:])
                             expected, _ = baseline(losses)
                         self.assertEqual(objective.score(raw), float(expected))
-                # Initial-condition coefficient 10 is ignored by both adaptive methods.
+                # Explicit zero log genes override the registered initial coefficients.
                 candidate[-3:] = 0
                 objective.load(candidate)
                 self.assertEqual(objective.weights, (1.0, 1.0, 1.0))
@@ -235,7 +235,7 @@ class EvolvedLossWeightTests(unittest.TestCase):
                 self.assertAlmostEqual(objective.score(raw), sum(raw.values()), delta=tolerance)
                 self.assertNotEqual(
                     objective.score(raw),
-                    10 * raw["Initial"] + raw["Boundary"] + raw["PDE"],
+                    sum(weight * raw[loss.name] for loss, weight in zip(objective.losses, trainer.lossesW)),
                 )
                 zero_score = objective.score(raw)
                 for index in range(3):
@@ -262,6 +262,8 @@ class EvolvedLossWeightTests(unittest.TestCase):
         objective = PINNFitness(tiny_trainer(), evolve_loss_weights=True)
         candidate = objective.vector()
         raw = dict(Initial=1.0, Boundary=1.0, PDE=1.0)
+        candidate[-3:] = 0
+        objective.load(candidate)
         optimum = objective.score(raw)
         for index in range(3):
             for log_var in (-4.0, -0.5, 0.5, 4.0):
@@ -570,7 +572,7 @@ class AdamHandoffTests(unittest.TestCase):
                 self.assertIsInstance(optimizer, torch.optim.Adam)
                 self.assertEqual(len(optimizer.state), 0)
                 self.assertIs(adam_trainer.model, de_trainer.model)
-                self.assertEqual(adam_trainer.lossesW, [10.0, 1.0, 1.0])
+                self.assertEqual(adam_trainer.lossesW, [1000.0, 1000.0, 1000.0])
                 self.assertTrue(
                     all(
                         left is right

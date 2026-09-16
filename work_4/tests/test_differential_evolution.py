@@ -3,9 +3,14 @@
 import math
 import unittest
 
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import torch
 
-from work_4.differential_evolution import DEConfig, differential_evolution
+from methods.differential_evolution import DEConfig, differential_evolution
 
 
 class DifferentialEvolutionTests(unittest.TestCase):

@@ -1,0 +1,72 @@
+Artifacts: /home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789517416095557065/runs/seed_2028_both/1789518719655205618
+DE: 400 generations, 32 individuals, 12832 fitness evaluations, 3365 parameters; then 16168 Adam epochs.
+DE generation 0: best fitness 38.613853, fixed reference 0.50279108, accepted 0/32, evaluations 32
+DE generation 10: best fitness 23.513069, fixed reference 0.54775838, accepted 4/32, evaluations 352
+DE generation 20: best fitness 19.842316, fixed reference 0.44433577, accepted 5/32, evaluations 672
+DE generation 30: best fitness 19.842316, fixed reference 0.44433577, accepted 1/32, evaluations 992
+DE generation 40: best fitness 13.684315, fixed reference 0.35201694, accepted 2/32, evaluations 1312
+DE generation 50: best fitness 12.460947, fixed reference 0.33679518, accepted 2/32, evaluations 1632
+DE generation 60: best fitness 12.460947, fixed reference 0.33679518, accepted 2/32, evaluations 1952
+DE generation 70: best fitness 12.460947, fixed reference 0.33679518, accepted 4/32, evaluations 2272
+DE generation 80: best fitness 11.504793, fixed reference 0.32522233, accepted 2/32, evaluations 2592
+DE generation 90: best fitness 10.889642, fixed reference 0.46693208, accepted 3/32, evaluations 2912
+DE generation 100: best fitness 8.1939287, fixed reference 0.49234963, accepted 0/32, evaluations 3232
+DE generation 110: best fitness 7.3563728, fixed reference 0.37946708, accepted 2/32, evaluations 3552
+DE generation 120: best fitness 7.3563728, fixed reference 0.37946708, accepted 1/32, evaluations 3872
+DE generation 130: best fitness 5.4806647, fixed reference 0.40264232, accepted 3/32, evaluations 4192
+DE generation 140: best fitness 5.4806647, fixed reference 0.40264232, accepted 3/32, evaluations 4512
+DE generation 150: best fitness 5.3970408, fixed reference 0.42981402, accepted 1/32, evaluations 4832
+DE generation 160: best fitness 3.6241345, fixed reference 0.36318295, accepted 1/32, evaluations 5152
+DE generation 170: best fitness 3.4180615, fixed reference 0.35461346, accepted 2/32, evaluations 5472
+DE generation 180: best fitness 3.3194947, fixed reference 0.31727924, accepted 1/32, evaluations 5792
+DE generation 190: best fitness 2.3690221, fixed reference 0.30269137, accepted 3/32, evaluations 6112
+DE generation 200: best fitness 1.8343742, fixed reference 0.31349802, accepted 4/32, evaluations 6432
+DE generation 210: best fitness 1.5708833, fixed reference 0.3058536, accepted 1/32, evaluations 6752
+DE generation 220: best fitness 1.383029, fixed reference 0.29693088, accepted 1/32, evaluations 7072
+DE generation 230: best fitness 1.383029, fixed reference 0.29693088, accepted 1/32, evaluations 7392
+DE generation 240: best fitness 0.53066254, fixed reference 0.29661762, accepted 0/32, evaluations 7712
+DE generation 250: best fitness 0.53066254, fixed reference 0.29661762, accepted 4/32, evaluations 8032
+DE generation 260: best fitness 0.53066254, fixed reference 0.29661762, accepted 0/32, evaluations 8352
+DE generation 270: best fitness 0.53066254, fixed reference 0.29661762, accepted 3/32, evaluations 8672
+DE generation 280: best fitness 0.53066254, fixed reference 0.29661762, accepted 0/32, evaluations 8992
+DE generation 290: best fitness 0.41413927, fixed reference 0.29494282, accepted 1/32, evaluations 9312
+DE generation 300: best fitness 0.11200082, fixed reference 0.36480341, accepted 3/32, evaluations 9632
+DE generation 310: best fitness -0.16931272, fixed reference 0.36949105, accepted 4/32, evaluations 9952
+DE generation 320: best fitness -0.16931272, fixed reference 0.36949105, accepted 1/32, evaluations 10272
+DE generation 330: best fitness -3.4980645, fixed reference 0.32146219, accepted 0/32, evaluations 10592
+DE generation 340: best fitness -3.6491978, fixed reference 0.31077064, accepted 1/32, evaluations 10912
+DE generation 350: best fitness -3.6491978, fixed reference 0.31077064, accepted 2/32, evaluations 11232
+DE generation 360: best fitness -3.6491978, fixed reference 0.31077064, accepted 1/32, evaluations 11552
+DE generation 370: best fitness -3.6657543, fixed reference 0.3092234, accepted 4/32, evaluations 11872
+DE generation 380: best fitness -3.7583821, fixed reference 0.30997593, accepted 1/32, evaluations 12192
+DE generation 390: best fitness -3.7942674, fixed reference 0.30739245, accepted 2/32, evaluations 12512
+DE generation 400: best fitness -3.7942674, fixed reference 0.30739245, accepted 2/32, evaluations 12832
+DE best fitness: -3.7942674; starting Adam.
+Iteration 0: total loss -3.7943, losses: [0.2538197636604309, 0.01098210085183382, 0.042590588331222534], weights: [-2.9219356 -4.125789  -3.0100496], time: 0.0986s
+Iteration 250: total loss -6.6257, losses: [0.20322443544864655, 0.002871820703148842, 0.003838696051388979], weights: [-2.7890515 -4.275595  -3.1659687], time: 0.0442s
+Iteration 500: total loss -7.2633, losses: [0.16076558828353882, 0.0053087268024683, 0.010290980339050293], weights: [-2.7050643 -4.3854313 -3.2766743], time: 0.0516s
+Iteration 750: total loss -8.1731, losses: [0.1306920051574707, 0.0017546402523294091, 0.011108503676950932], weights: [-2.6508408 -4.486607  -3.3649988], time: 0.0567s
+Iteration 1000: total loss -8.5533, losses: [0.11883565038442612, 0.0011848811991512775, 0.011290845461189747], weights: [-2.6122377 -4.588067  -3.4430115], time: 0.0635s
+Iteration 1250: total loss -8.8478, losses: [0.11393053084611893, 0.000780294300056994, 0.010251343250274658], weights: [-2.5790248 -4.6824427 -3.5194683], time: 0.0408s
+Iteration 1500: total loss -9.0981, losses: [0.10906871408224106, 0.0006430385401472449, 0.009471500292420387], weights: [-2.5484648 -4.7708144 -3.594847 ], time: 0.0471s
+Iteration 1750: total loss -9.3148, losses: [0.10681366175413132, 0.0005582187441177666, 0.008335462771356106], weights: [-2.5214012 -4.85257   -3.6691608], time: 0.0409s
+Iteration 2000: total loss -9.5346, losses: [0.10256918519735336, 0.00041765253990888596, 0.00786962267011404], weights: [-2.4984932 -4.931844  -3.7423701], time: 0.0519s
+Iteration 2250: total loss -9.7200, losses: [0.1005154699087143, 0.00039156334241852164, 0.007100383751094341], weights: [-2.4790452 -5.0074563 -3.8133228], time: 0.0813s
+Iteration 2500: total loss -9.8946, losses: [0.09933990985155106, 0.00035812699934467673, 0.006316665560007095], weights: [-2.4615736 -5.0793376 -3.8830812], time: 0.0418s
+Iteration 2750: total loss -10.0123, losses: [0.09944728016853333, 0.00037061329931020737, 0.006170192733407021], weights: [-2.44572   -5.1480165 -3.951065 ], time: 0.0478s
+Early stopping after 2925 iterations: no improvement greater than 1e-05 for 300 evaluations.
+{
+  "u": {
+    "rmse": 0.2653622338935662,
+    "mae": 0.18684272780494612,
+    "maximum_absolute": 1.3389460756312515,
+    "relative_l2": 0.4568867835018231
+  },
+  "v": {
+    "rmse": 0.3039189234698732,
+    "mae": 0.21054220220421635,
+    "maximum_absolute": 1.6226725096044303,
+    "relative_l2": 0.6370852546087727
+  }
+}
+Plot with: python -m utils.plot_pinn_results --run-directory /home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789517416095557065/runs/seed_2028_both/1789518719655205618

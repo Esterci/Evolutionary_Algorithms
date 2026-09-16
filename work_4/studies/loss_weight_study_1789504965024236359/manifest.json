@@ -1,0 +1,86 @@
+{
+  "modes": [
+    "de",
+    "pinn",
+    "both",
+    "none"
+  ],
+  "runs_per_mode": 2,
+  "generations": 200,
+  "adam_epochs": 15568,
+  "population_size": 32,
+  "budget_formula": "Adam updates = budget - population_size * (generations + 1)",
+  "maximum_evaluations": 22000,
+  "network_seed_start": 2028,
+  "de_seed_start": 3028,
+  "training_options": {
+    "config_directory": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/control_dicts",
+    "output_directory": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/pinn_sim",
+    "epochs": 15768,
+    "de_generations": 200,
+    "population_size": 32,
+    "lower_bound": -2.0,
+    "upper_bound": 2.0,
+    "control_adaptation": "jde",
+    "adaptation_probability": 0.1,
+    "initialization": "local",
+    "initial_spread": 0.05,
+    "loss_weight_stage": "both",
+    "evolve_loss_weights": true,
+    "log_weight_init_bound": 4.0,
+    "hidden_sizes": [
+      32,
+      32,
+      32
+    ],
+    "activation_functions": [
+      "Tanh",
+      "Tanh",
+      "Tanh"
+    ],
+    "scheduler": "logarithmic",
+    "lr_final_ratio": 0.1,
+    "early_stopping": true,
+    "early_stopping_patience": 300,
+    "early_stopping_tolerance": 1e-05,
+    "lr": 0.001,
+    "seed": 2029,
+    "de_seed": 3029,
+    "device": "cuda",
+    "dtype": "float32",
+    "batch_size": 65536,
+    "print_steps": 250,
+    "de_print_steps": 10,
+    "adam_optimize_loss_weights": true
+  },
+  "pairing": "Same network seed and DE seed across modes; independent seed pairs across replicates",
+  "order": "Modes rotate by replicate index",
+  "threads": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "evaluation": "Shared float64 FVM with h/2 and k/2; disjoint odd-time validation/test splits",
+  "framework_commit": "abb148e8ad0857a5c49abcfd65163d040818bd11",
+  "framework_directory": "/home/esterci/Repositorios/ppgmc/Pinn-Torch",
+  "framework_source_sha256": {
+    "Loss.py": "663dd5256e77aac3e8f5c242e1709d7ce1a8c59d0d2d8de4a5e0259d98fabb9c",
+    "Net.py": "8f3433dbca390a8a5f0c6d7abfff5a1de2bd657b61c55eada501f111124b8a3e",
+    "Trainer.py": "bb2c4db41983bfbaa14b7f6f5afce8caccf18ce0d1877f23b0777abb0faad2fe"
+  },
+  "experiment_source_sha256": {
+    "work_4/methods/differential_evolution.py": "66e93b3a5055728c05f22f701d6ec58146791af24e4476245c1e9e6a57eab27f",
+    "work_4/methods/pinn_de_adam.py": "c68dd0ce0fb6d9f371ddf69af20d764094934490393b2d739a8f4c15bf291501",
+    "work_4/runners/train_pinn_de_adam.py": "9a13035fd3f35b05a5a53fff7f434b4f7f02971ad63b69921779727bd92f3e0e",
+    "work_4/methods/pinn_model.py": "2e5429798eb04665b19f855d0c2247815e9dfd820758a88e94a1ce0a79961b87",
+    "work_4/runners/train_pinn.py": "8a6b38e3db6d6a4fd6d1d56d35985eae2b5d51171c4d808cec54b8cd453e0fd3",
+    "work_4/methods/fvm_model_serial.py": "ed6193e51c9cc9a8118be20079561164957416f9d2b9e82ae810cbdfb711ac43",
+    "work_4/methods/training_controls.py": "0db86ab7d2976d7140c9ba452d81be8d57be22a655ad1c0999a33c8ec12cceac",
+    "work_3/rastrigin/de_best_1_bin_adpt.py": "0938b89339ba6d54fcdaa70ba766cbbcb98a41450a6800bc63962eb0c08bd7a2"
+  },
+  "study_source_sha256": {
+    "runners/run_loss_weight_study.py": "7577a9f1986a6a4da8c87dcb5a563864e33ff7d05e004bc1e96553d4bcb20527",
+    "runners/run_paired_study.py": "bd771f635ab25f1d27b740b1de49a20acd919611c369bc8a3ffacd9963e05967",
+    "utils/analyze_loss_weight_study.py": "a5b9d625c989a09d8145eed4d297ed0105c13851a158cada8b63dc6ed7ed8d2c",
+    "shells/run_loss_weight_study.sh": "0f385f2a6481ec3a6db8a67ac211d37f931c4b371d0f6dc5885f8bdbdb35876f"
+  }
+}

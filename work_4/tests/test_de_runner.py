@@ -14,9 +14,9 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from train_pinn_de_adam import main, parse_args
-from train_pinn import main as train_pinn_main
-from pinn_model import train_with_loss_weight_history
+from runners.train_pinn_de_adam import main, parse_args
+from runners.train_pinn import main as train_pinn_main
+from methods.pinn_model import train_with_loss_weight_history
 
 
 class DERunnerTests(unittest.TestCase):
@@ -137,6 +137,50 @@ class DERunnerTests(unittest.TestCase):
                     ) + sum(metadata['final_loss_log_vars'].values())
                     self.assertAlmostEqual(final_score, metadata['final_regularized_fitness'])
 
+    def test_loss_weight_stage_selection_and_frozen_handoff(self):
+        for stage in ('de', 'pinn', 'both', 'none'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / 'mesh_properties.json').write_text(json.dumps(dict(
+                    h=0.5, k=0.01, x_dom=[0, 1.5], y_dom=[0, 1.5], t_dom=[0, 0.02])))
+                (root / 'constant_properties.json').write_text(json.dumps(dict(
+                    nu=0.01, boundary='zero_gradient', mean_velocity_u=0.5,
+                    mean_velocity_v=0.25, perturbation_amplitude=1.0)))
+                with contextlib.redirect_stdout(io.StringIO()):
+                    main(['--config-directory', str(root), '--output-directory', str(root / 'runs'),
+                          '--epochs', '4', '--de-generations', '2', '--population-size', '4',
+                          '--hidden-sizes', '4', '--device', 'cpu', '--dtype', 'float64',
+                          '--loss-weight-stage', stage])
+                (run,) = (root / 'runs').iterdir()
+                metadata = json.loads((run / 'metadata.json').read_text())
+                self.assertEqual(metadata['status'], 'complete')
+                self.assertEqual(metadata['loss_weight_stage'], stage)
+                self.assertEqual(metadata['de_adaptive_loss_weights'], stage in ('de', 'both'))
+                self.assertEqual(metadata['adam_optimize_loss_weights'], stage in ('pinn', 'both'))
+                self.assertEqual(metadata['genome_dimension'] - metadata['network_dimension'],
+                                 3 if stage in ('de', 'both') else 0)
+                self.assertEqual(metadata['training_loss_evaluations'], 14)
+                if stage != 'none':
+                    with np.load(run / 'adam_loss_weights.npz') as history:
+                        initial = np.array(list(metadata['adam_initial_loss_log_vars'].values()))
+                        if stage == 'de':
+                            np.testing.assert_array_equal(history['log_vars'], np.tile(initial, (2, 1)))
+                            self.assertEqual(metadata['final_loss_weights'], metadata['de_best_loss_weights'])
+                        else:
+                            self.assertTrue(np.any(history['log_vars'][-1] != initial))
+                        if stage == 'pinn':
+                            np.testing.assert_allclose(initial, -np.log(np.full(3, 1000.0)))
+                            self.assertEqual(metadata['de_best_loss_weights'], dict.fromkeys(['Initial', 'Boundary', 'PDE'], 1000.0))
+                final_score = sum(metadata['final_loss_weights'][name] * value
+                                  for name, value in metadata['final_losses'].items())
+                final_score += sum(metadata['final_loss_log_vars'].values())
+                self.assertAlmostEqual(final_score, metadata['final_regularized_fitness'])
+                before = torch.load(run / 'de_best_model.pt', weights_only=True)
+                after = torch.load(run / 'pinn_model.pt', weights_only=True)
+                self.assertTrue(any(not torch.equal(before[k], after[k]) for k in before))
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parse_args(['--loss-weight-stage', 'de', '--evolve-loss-weights'])
+
     def test_cli_defaults_and_invalid_weight_search_parameters(self):
         args = parse_args([])
         self.assertTrue(args.evolve_loss_weights)
@@ -181,7 +225,7 @@ class DERunnerTests(unittest.TestCase):
             metadata = json.loads((run / 'metadata.json').read_text())
             self.assertTrue(metadata['adaptive_loss'])
             self.assertEqual(metadata['loss_weight_names'], ['Initial', 'Boundary', 'PDE'])
-            self.assertEqual(metadata['initial_loss_log_vars'], dict(Initial=0, Boundary=0, PDE=0))
+            np.testing.assert_allclose(list(metadata['initial_loss_log_vars'].values()), -np.log(np.full(3, 1000.0)))
             state = torch.load(run / 'adaptive_weights.pt', weights_only=True)
             self.assertEqual(state['log_vars'].dtype, torch.float64)
             with np.load(run / 'adam_loss_weights.npz') as history:
@@ -206,7 +250,7 @@ class DERunnerTests(unittest.TestCase):
                 return result
 
             output = root / 'failed'
-            with patch('train_pinn_de_adam.train_with_loss_weight_history',
+            with patch('runners.train_pinn_de_adam.train_with_loss_weight_history',
                        side_effect=overflow_after_training), contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaisesRegex(FloatingPointError, 'adaptive coefficients'):
                     main(['--config-directory', str(root), '--output-directory', str(output),

@@ -12,7 +12,7 @@ from unittest.mock import patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from plot_pinn_results import (
+from utils.plot_pinn_results import (
     comparison_panel,
     comparison_report,
     load_run,
@@ -165,7 +165,7 @@ class ComparisonTests(unittest.TestCase):
             captured.append((figure, axes))
             return figure, axes
 
-        with patch("plot_pinn_results.plt.subplots", side_effect=capture):
+        with patch("utils.plot_pinn_results.plt.subplots", side_effect=capture):
             plot_histories([run], output)
         convergence = captured[1][1]
         self.assertEqual(convergence.get_yscale(), "symlog")
@@ -212,7 +212,7 @@ class ComparisonTests(unittest.TestCase):
             captured.append((figure, axes))
             return figure, axes
 
-        with patch("plot_pinn_results.plt.subplots", side_effect=capture):
+        with patch("utils.plot_pinn_results.plt.subplots", side_effect=capture):
             plot_histories([run], output)
         adam_axis, convergence_axis, de_axes = [entry[1] for entry in captured[1:]]
         self.assertEqual([line.get_label() for line in adam_axis.lines], names)
