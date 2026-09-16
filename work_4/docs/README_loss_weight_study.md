@@ -123,7 +123,7 @@ studies/loss_weight_study_TIMESTAMP/
     ├── comparison.png         # Paired metrics plus boundary MSE and training time
     ├── test_error_by_time.png # Mean and sample SD by physical time
     ├── training_losses.png   # Fixed vs adapted weighted MSE, best validation run per mode
-    ├── de_convergence.png     # Mean best and population-mean DE fitness
+    ├── de_convergence.png     # Best DE run: best fitness and population mean ± SD
     ├── de_diagnostics.png     # DE reference/weights above; mean F and CR below
     ├── pinn_loss_weights.png  # Best-run coefficients during Adam (de, pinn, both)
     ├── pinn_fixed_reference.png # Best-run fixed-reference losses during Adam
@@ -163,8 +163,7 @@ GENERATIONS=1 BUDGET=10 RUNS=1 POPULATION_SIZE=4 \
 
 A smoke test checks the pipeline and artifacts; it is not an accuracy result.
 
-Curve means use the common history prefix within each mode, keeping the same
-seed cohort throughout. Fields are separated into u and v figures (the `_v`
+DE curves use one selected trajectory per mode, without averaging across seeds. Fields are separated into u and v figures (the `_v`
 suffix identifies v); each has predictions in the first column and errors in the second, labeling both network
 and DE seeds. Weight analysis concerns loss coefficients, not network parameters.
 
@@ -177,8 +176,9 @@ is computed per seed before aggregation. Additive log-variance regularization
 is excluded: these panels show weighted MSE contributions, not the full objective.
 
 The second row of `de_diagnostics.png` compares de and both using the saved
-population means of F and CR by generation, averaged across seeds. Shading
-shows sample SD across those seed means; generation zero is initialization.
+population means of F and CR by generation from the best DE run in each mode.
+Shading shows population SD (ddof=0) when recorded; unavailable historical SD
+is labeled explicitly. Generation zero is initialization.
 
 ## Hidden architecture and DE adaptation
 
@@ -251,9 +251,13 @@ PINN loss/reference/coefficient plots select one completed run per mode using
 minimum validation RMSE (ties use the smaller seed). The same run supplies every
 loss term, and legends identify network and DE seeds. These plots show selected
 trajectories without seed averaging or SD bands. `selected_pinn_runs.json`
-records the selection criterion, paths and scores. DE diagnostics and comparison
-statistics still aggregate all completed runs. `mean_histories.csv` distinguishes
-best-run trajectories from seed means in its `aggregation` column.
+records the selection criterion, paths and scores. DE convergence and diagnostics independently select the run with the lowest final
+DE best fitness within each mode (ties use the smaller seed), and legends identify
+both seeds. `selected_de_runs.json` records this selection and missing SD fields.
+Fitness bands use saved population SD; best-candidate curves have no SD bands.
+Future runs also record population SD of F and CR; it cannot be recovered from
+historical means alone. Comparison statistics still aggregate all completed runs.
+`mean_histories.csv` records selection, seeds, run paths, and SD semantics.
 
 `comparison.png` places final raw boundary training MSE in the fifth panel and
 training time in the sixth. The boundary value comes from `final_losses.Boundary`

@@ -1,7 +1,0 @@
-{
-    "nu": 0.01,
-    "boundary": "zero_gradient",
-    "mean_velocity_u": 0.5,
-    "mean_velocity_v": 0.25,
-    "perturbation_amplitude": 1.0
-}

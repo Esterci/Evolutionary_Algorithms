@@ -66,8 +66,15 @@ def select_best_runs(completed, per_mode=True):
     return selected
 
 
+def select_best_de_run(runs):
+    """Select one DE trajectory by final best objective, breaking ties by seed."""
+    return min(runs, key=lambda run: (
+        float(run['de']['best_fitness'][-1]), run['record']['seed'],
+        run['record']['de_seed'])) if runs else None
+
+
 def plot_mean_histories(root, completed, output):
-    """Plot DE seed means and selected PINN trajectories; export plotted values."""
+    """Plot selected DE populations and PINN trajectories; export plotted values."""
     exports = []
     datasets = {}
     terms = ('Initial', 'Boundary', 'PDE')
@@ -116,30 +123,45 @@ def plot_mean_histories(root, completed, output):
                   for record, row in select_best_runs(completed)]
     write(output / 'selected_pinn_runs.json', selections)
 
+    best_de = {mode: select_best_de_run(runs) for mode, runs in datasets.items()}
+    write(output / 'selected_de_runs.json', [
+        dict(mode=mode, seed=run['record']['seed'], de_seed=run['record']['de_seed'],
+             run=run['record']['run'], final_best_fitness=float(run['de']['best_fitness'][-1]),
+             criterion='minimum final DE best fitness within mode; ties resolved by seed',
+             missing_population_std=[name for name in ('std_fitness', 'std_mutation_factor',
+                                                       'std_crossover_rate') if name not in run['de']])
+        for mode, run in best_de.items() if run is not None])
+
     def draw(axis, mode, source, metric, label, color=None, style='-', de_step='fitness_evaluations'):
 
-        runs = datasets[mode]
-        selected = source != 'de'
-        if selected:
-            runs = [run for run in runs if run['record'] == best.get(mode)]
-        if not runs:
+        run = best_de[mode] if source == 'de' else next(
+            (r for r in datasets[mode] if r['record'] == best.get(mode)), None)
+        if run is None:
             return
-        mean, sd = mean_history([r[source][metric] for r in runs])
-        x = runs[0]['de'][de_step][:len(mean)] if source == 'de' else np.arange(1, len(mean) + 1)
-        if source == 'de' and any(not np.array_equal(x, r['de'][de_step][:len(mean)]) for r in runs):
-            raise ValueError('Incompatible DE evaluation grids')
-        legend = (f"{label} | seed={runs[0]['record']['seed']} | DE seed={runs[0]['record']['de_seed']}"
-                  if selected else f'{label} (n={len(runs)})')
+        mean, _ = mean_history([run[source][metric]])
+        std_metric = {'mean_fitness': 'std_fitness',
+                      'mean_mutation_factor': 'std_mutation_factor',
+                      'mean_crossover_rate': 'std_crossover_rate'}.get(metric)
+        sd = run['de'].get(std_metric) if source == 'de' and std_metric else None
+        if sd is not None:
+            sd = np.asarray(sd, dtype=float)
+            if sd.shape != mean.shape or not np.isfinite(sd).all() or np.any(sd < 0):
+                raise ValueError('Invalid population standard-deviation history')
+        x = run['de'][de_step] if source == 'de' else np.arange(1, len(mean) + 1)
+        legend = f"{label} | seed={run['record']['seed']} | DE seed={run['record']['de_seed']}"
+        if source == 'de' and std_metric:
+            legend += ' (population SD unavailable)' if sd is None else ' ± population SD'
         line, = axis.plot(x, mean, style, color=color, label=legend)
         if sd is not None:
             axis.fill_between(x, mean - sd, mean + sd, color=line.get_color(), alpha=.13)
-        seeds = ','.join(str(r['record']['seed']) for r in runs)
         for i, value in enumerate(mean):
             exports.append(dict(mode=mode, source=source, metric=metric, step=int(x[i]),
                                 step_kind=de_step if source == 'de' else 'adam_update',
-                                aggregation='best_validation_run' if selected else 'mean_across_seeds',
-                                n=len(runs), seeds=seeds, mean=float(value),
-                                std=None if sd is None else float(sd[i])))
+                                aggregation='best_de_run' if source == 'de' else 'best_validation_run',
+                                n=1, seeds=str(run['record']['seed']), de_seed=run['record']['de_seed'],
+                                run=run['record']['run'], mean=float(value),
+                                std=None if sd is None else float(sd[i]),
+                                std_kind='population_ddof_0' if sd is not None else 'unavailable' if std_metric else 'not_applicable'))
 
     fig, axes = plt.subplots(3, 2, figsize=(14, 12), constrained_layout=True)
     for row, term in enumerate(terms):
@@ -179,7 +201,7 @@ def plot_mean_histories(root, completed, output):
         axis.grid(alpha=.2)
         if datasets[mode]:
             axis.legend(fontsize=8)
-    fig.suptitle('DE convergence: mean ± sample SD across seeds; objectives differ across modes')
+    fig.suptitle('DE convergence: best DE run per mode; population mean ± SD\nSelection: lowest final DE fitness; objectives differ across modes')
     fig.savefig(output / 'de_convergence.png', dpi=160)
     plt.close(fig)
     fig, axes = plt.subplots(2, 2, figsize=(14, 8), constrained_layout=True)
@@ -202,11 +224,11 @@ def plot_mean_histories(root, completed, output):
             draw(axis, mode, 'de', metric, mode, COLORS[mode],
                  style='--' if mode == 'both' else '-', de_step='generation')
         axis.set(title=label, xlabel='DE generation (0 = initialization)',
-                 ylabel='Population mean, averaged across seeds')
+                 ylabel='Population mean ± SD (when recorded)')
         axis.grid(alpha=.2)
         if any(datasets[mode] for mode in ('de', 'both')):
             axis.legend(fontsize=8)
-    fig.suptitle('DE diagnostics: mean ± sample SD across seeds')
+    fig.suptitle('DE diagnostics: best DE run per mode; bands show population SD when recorded')
     fig.savefig(output / 'de_diagnostics.png', dpi=160)
     plt.close(fig)
     fig, axes = plt.subplots(2, 2, figsize=(14, 8), constrained_layout=True)
@@ -376,9 +398,9 @@ def analyze(directory):
               'Within-seed differences (left minus right): [paired_differences.csv](paired_differences.csv).', '',
               'Only completed finite runs enter aggregates; incomplete counts are explicit. '
               'Each pair uses only seeds completed in both modes. No statistical significance is claimed. '
-              'SD is undefined for one run. DE curves use arithmetic means across seeds at each step, '
-              'restricted to the common prefix within each mode; no padding or changing cohort. '
-              'Shaded bands show sample SD, not confidence intervals. Symmetric-log axes retain nonpositive bounds.', '',
+              'Across-run sample SD is undefined for one run. DE curves select the lowest final best fitness '
+              'within each mode (ties use seed), independently of PINN validation selection. '
+              'Bands show population SD (ddof=0) within that DE run. Symmetric-log axes retain nonpositive bounds.', '',
               'FVM is an approximate cell-based reference, compared with pointwise PINN predictions. '
               'Validation and test times are disjoint and never enter training. This is not an exact-solution error. '
               'Initial coefficients and fixed coefficients are recorded in each run metadata; historical studies may use different defaults. '
@@ -394,10 +416,11 @@ def analyze(directory):
               'All four modes appear in this reference comparison; none is omitted only from '
               'the coefficient plot. DE diagnostics retain the de reference and selected loss '
               'coefficients in the first row. The second row compares de and both: mean F '
-              'and mean CR versus generation. Each run first averages over the population; '
-              'curves then average those values across seeds. Bands show sample SD across '
-              'seed means, not dispersion between individuals. Generation zero is initialization.', '',
+              'and mean CR versus generation, using that mode’s selected DE run. Bands show dispersion '
+              'between individuals when saved; missing historical SD is labeled unavailable. '
+              'Best-candidate fitness and coefficient curves have no population SD. Generation zero is initialization.', '',
               'Plotted values, aggregation type, counts and seeds: [mean_histories.csv](mean_histories.csv).', '',
+              'Selected DE runs and missing SD fields: [selected_de_runs.json](selected_de_runs.json). '
               'Selected PINN runs: [selected_pinn_runs.json](selected_pinn_runs.json). '
               'Selection minimizes validation RMSE, with seed as the tie-breaker; test error is not used. '
               'These selected trajectories describe best-case runs, not average performance. '

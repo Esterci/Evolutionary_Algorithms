@@ -17,6 +17,4 @@ export PYTHON_BIN="/home/thiago.esterci/.conda/envs/torch-numba-11/bin/python"
 
 pwd
 
-time GENERATIONS=400 BUDGET=29000 RUNS=10 POPULATION_SIZE=32 bash shells/run_loss_weight_study.sh   --hidden-sizes 32
-32 32 32   --activation-functions Tanh ReLu Tanh ReLu   --adaptation-probability 0.1 --initial-loss-weights 10 10 10 "
-$@
+time GENERATIONS=400 BUDGET=29000 RUNS=10 POPULATION_SIZE=32 bash shells/run_loss_weight_study.sh   --hidden-sizes 32 32 32 32   --activation-functions Tanh ReLu Tanh ReLu   --adaptation-probability 0.1 --initial-loss-weights 10 10 10 "

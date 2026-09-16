@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from utils.analyze_loss_weight_study import analyze, statistics, MODES, mean_history, weighted_loss_history, select_best_runs
+from utils.analyze_loss_weight_study import analyze, statistics, MODES, mean_history, weighted_loss_history, select_best_runs, select_best_de_run, plot_mean_histories
 
 
 class LossWeightStudyTests(unittest.TestCase):
@@ -23,6 +23,41 @@ class LossWeightStudyTests(unittest.TestCase):
                          [('de', 1), ('pinn', 1)])
         self.assertEqual(len(select_best_runs(completed, per_mode=False)), 1)
         self.assertEqual(select_best_runs([]), [])
+
+    def test_best_de_selection_uses_final_objective_and_seed(self):
+        runs = [dict(record=dict(seed=seed, de_seed=seed + 1000),
+                     de=dict(best_fitness=fitness))
+                for seed, fitness in [(1, [2, 2]), (3, [5, 1]), (2, [8, 1])]]
+        self.assertIs(select_best_de_run(runs), runs[2])
+        self.assertIsNone(select_best_de_run([]))
+
+    def test_de_plot_exports_selected_population_dispersion(self):
+        import csv
+        import numpy as np
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            completed = []
+            for seed, best, mean, sd in [(1, 4., 10., 3.), (2, 2., 8., 5.)]:
+                run = root / str(seed)
+                run.mkdir()
+                record = dict(mode='none', seed=seed, de_seed=1000 + seed, run=str(seed))
+                completed.append((record, dict(validation_rmse=seed)))
+                (run / 'metadata.json').write_text(json.dumps(dict(
+                    loss_weights=dict(Initial=1., Boundary=1., PDE=1.))))
+                np.savez(run / 'losses.npz', Initial=[1.], Boundary=[1.], PDE=[1.])
+                np.savez(run / 'de_history.npz', best_fitness=[best],
+                         mean_fitness=[mean], std_fitness=[sd], fitness_evaluations=[4])
+            plot_mean_histories(root, completed, root)
+            with (root / 'mean_histories.csv').open() as stream:
+                rows = list(csv.DictReader(stream))
+            row = next(r for r in rows if r['metric'] == 'mean_fitness')
+            self.assertEqual(float(row['mean']), 8.)
+            self.assertEqual(float(row['std']), 5.)
+            self.assertEqual(row['seeds'], '2')
+            self.assertEqual(row['de_seed'], '1002')
+            self.assertEqual(row['std_kind'], 'population_ddof_0')
+            self.assertEqual(row['aggregation'], 'best_de_run')
+            self.assertEqual(next(r for r in rows if r['source'] == 'reference')['seeds'], '1')
 
     def test_weighted_loss_aligns_pre_update_coefficients(self):
         import numpy as np
