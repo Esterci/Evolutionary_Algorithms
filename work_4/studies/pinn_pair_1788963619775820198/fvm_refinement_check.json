@@ -1,0 +1,40 @@
+{
+  "mesh": {
+    "h": 0.025,
+    "k": 0.00125,
+    "x_dom": [
+      0,
+      1.5
+    ],
+    "y_dom": [
+      0,
+      1.5
+    ],
+    "t_dom": [
+      0,
+      1
+    ]
+  },
+  "constants": {
+    "nu": 0.01,
+    "boundary": "zero_gradient",
+    "mean_velocity_u": 0.5,
+    "mean_velocity_v": 0.25,
+    "perturbation_amplitude": 1.0
+  },
+  "seconds": 0.9604270859999815,
+  "medium_vs_fine": {
+    "u": {
+      "rmse": 0.0810125418475437,
+      "final_time_rmse": 0.15145075801996824,
+      "maximum_absolute": 1.3534538873618
+    },
+    "v": {
+      "rmse": 0.09053508952643374,
+      "final_time_rmse": 0.11980949480889465,
+      "maximum_absolute": 1.2544169818433193
+    }
+  },
+  "purpose": "reference sensitivity only; not used to select models or inspect reserved test predictions",
+  "saved_temporal_stride": 4
+}

@@ -1,0 +1,21 @@
+% Based on the user-supplied Beamer template by Qiuyu Lu (July 2024).
+\documentclass[serif,8pt,aspectratio=169]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,booktabs,graphicx}
+\IfFileExists{fourier.sty}{\usepackage{fourier}}{}
+\IfFileExists{UoWstyle.sty}{\usepackage{UoWstyle}}{\usetheme{Madrid}}
+\setbeamertemplate{navigation symbols}{}
+\author{Thiago Esterci Fernandes}
+\title{Uso de Evolução Diferencial para inicialização de PINNs}
+\subtitle{Resultados: 32 indivíduos e 100 gerações}
+\institute{Programa de Pós-graduação em Modelagem Computacional\\Universidade Federal de Juiz de Fora}
+\date{}
+\begin{document}
+\begin{frame}
+\titlepage
+\IfFileExists{pic/UFJF.png}{\centering\includegraphics[height=0.9cm]{pic/UFJF.png}}{}
+\end{frame}
+\input{resultados.tex}
+\end{document}

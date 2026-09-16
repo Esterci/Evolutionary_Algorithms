@@ -1,0 +1,60 @@
+[
+  {
+    "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/pinn_sim/1788959381585767370",
+    "method": "pinn",
+    "architecture": [
+      32,
+      32,
+      32,
+      32,
+      32
+    ],
+    "seed": 2026,
+    "validation_joint_rmse": 0.23752704569552674,
+    "validation_rmse_u": 0.2128748815596346,
+    "validation_rmse_v": 0.259850879688065,
+    "common_physics": {
+      "rmse": [
+        0.11415152251720428,
+        0.10692479461431503
+      ],
+      "maximum_absolute": [
+        0.7486358880996704,
+        0.8169549703598022
+      ],
+      "points": 4725,
+      "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+    },
+    "common_physics_joint_rmse": 0.11059720113164992,
+    "note": "historical single seed, unequal original budgets; re-evaluated with common validation protocol, test split not inspected"
+  },
+  {
+    "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/pinn_sim/1788959802040961317",
+    "method": "pinn-de",
+    "architecture": [
+      32,
+      32,
+      32,
+      32,
+      32
+    ],
+    "seed": 2026,
+    "validation_joint_rmse": 0.24049165163683844,
+    "validation_rmse_u": 0.21935839468152,
+    "validation_rmse_v": 0.25991222306150863,
+    "common_physics": {
+      "rmse": [
+        0.18404486775398254,
+        0.16340245306491852
+      ],
+      "maximum_absolute": [
+        1.1750893592834473,
+        1.2987771034240723
+      ],
+      "points": 4725,
+      "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+    },
+    "common_physics_joint_rmse": 0.17402999025198765,
+    "note": "historical single seed, unequal original budgets; re-evaluated with common validation protocol, test split not inspected"
+  }
+]

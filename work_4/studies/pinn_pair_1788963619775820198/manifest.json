@@ -1,0 +1,97 @@
+{
+  "status": "complete",
+  "training_configuration": "unchanged repository physical domain, coefficients and grid",
+  "topology_constraint": "same topology per pair; candidates use at most 3 hidden layers of 32 neurons (5 layers including input/output)",
+  "device": "cuda",
+  "dtype": "float32",
+  "network_seed_screening": 2026,
+  "de_seed": 2027,
+  "adaptive_loss": true,
+  "screening_budget": 2000,
+  "confirmation_budget": 5000,
+  "confirmation_seeds": [
+    2028,
+    2029,
+    2030
+  ],
+  "budget_definition": "Adam loss evaluations + population_size*(DE generations+1); one evaluation computes all3 losses; backward costs and wall time reported separately",
+  "de": {
+    "population_size": 8,
+    "generations": 20,
+    "initial_spread": 0.05,
+    "control_adaptation": "jde",
+    "adaptation_probability": 0.1
+  },
+  "candidates": [
+    {
+      "name": "h32x2_lr1e3",
+      "hidden_sizes": [
+        32,
+        32
+      ],
+      "lr": 0.001
+    },
+    {
+      "name": "h32x3_lr1e3",
+      "hidden_sizes": [
+        32,
+        32,
+        32
+      ],
+      "lr": 0.001
+    },
+    {
+      "name": "h32x3_lr3e3",
+      "hidden_sizes": [
+        32,
+        32,
+        32
+      ],
+      "lr": 0.003
+    }
+  ],
+  "selection": "minimum mean validation joint(u,v) RMSE of the PINN and PINN-DE pair; validation/test reference times disjoint; full domain physics residuals additionally inspected",
+  "reference": "donor-cell FVM at h=0.05 k=0.005 with unchanged physical domain and parameters; approximate numerical reference, not exact solution",
+  "validation_times": "reference indices1,5,...197; off training times",
+  "test_times": "reference indices3,7,...199; reserved for confirmation",
+  "source_sha256": {
+    "pinn_model.py": "d007402f355fb0c7e8f319fc51a7a7c01630b3f09994039f8a12ddecff969d89",
+    "pinn_de_adam.py": "e2d58a0c53cbb1e7a7fcd9d37428631fa61bdbff08ca3b7f826fac5ff1862c7f",
+    "differential_evolution.py": "66e93b3a5055728c05f22f701d6ec58146791af24e4476245c1e9e6a57eab27f",
+    "train_pinn.py": "67918ed824eaee6e34ea064fdd75e8b17f0d338c8ebb0050eb9e22e45fd22139",
+    "train_pinn_de_adam.py": "b2e02b8ae67a5ca794bdeef0beeb688c25e8430f43394acf60a51fa7f5101ad2",
+    "fvm_model_serial.py": "1809bb03d48cb58180137f208072e4326264972061c0abc39aebb7e9fe752957"
+  },
+  "study_script_sha256": "154c470a32886d6e2280cd9dd772157993ca3f48c27a6c235d2299aa2eaaf093",
+  "confirmation_de_seed_rule": "network_seed + 1000 (independent DE stream per confirmation run); screening retains common DE seed2027",
+  "selected_configuration": {
+    "name": "h32x3_lr1e3",
+    "hidden_sizes": [
+      32,
+      32,
+      32
+    ],
+    "lr": 0.001
+  },
+  "selection_validation_rmse": 0.26616219230499494,
+  "confirmation_runner_sha256": "7b0f9465e7f784b551b1183d88c9054814d90aae86e983d15fdb085fea77a765",
+  "execution_environment": {
+    "python": "/home/esterci/anaconda3/envs/torch-numba-11/bin/python",
+    "OMP_NUM_THREADS": 1,
+    "MKL_NUM_THREADS": 1,
+    "torch_version": "2.5.1",
+    "gpu": "NVIDIA GeForce GTX 1650",
+    "gpu_memory_mib": 4096,
+    "device_dtype": "cuda float32",
+    "fisiocompinn_commit": "ee4a05e01c4374d36ad19a3a6cc7266d8d441620",
+    "fisiocompinn_source_sha256": {
+      "Loss.py": "663dd5256e77aac3e8f5c242e1709d7ce1a8c59d0d2d8de4a5e0259d98fabb9c",
+      "Trainer.py": "a5d09a9b00524dc79394e5d0b4c8544541c52dce578661e7ca990d9a05d96b4e",
+      "Net.py": "8f3433dbca390a8a5f0c6d7abfff5a1de2bd657b61c55eada501f111124b8a3e"
+    }
+  },
+  "training_source_snapshot": "training_source_snapshot/: code used by all runs before post-study CLI default changes",
+  "completed_runs": 12,
+  "failed_runs": 0,
+  "verification": "verification.json"
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "method": "pinn",
+    "runs": 3,
+    "failed_runs": 0,
+    "validation_mean": 0.24577028751971344,
+    "validation_std": 0.00877405919704493,
+    "test_mean": 0.24655705517474688,
+    "test_std": 0.008679766464585563,
+    "initial_rmse_mean": 0.15755917188408738,
+    "initial_rmse_std": 0.01707159204308854,
+    "physics_joint_rmse_mean": 0.11218088338137074,
+    "physics_joint_rmse_std": 0.00826965318635001,
+    "training_seconds_mean": 252.09782340500047,
+    "training_seconds_std": 7.773924213353981
+  },
+  {
+    "method": "pinn-de",
+    "runs": 3,
+    "failed_runs": 0,
+    "validation_mean": 0.2572346108429634,
+    "validation_std": 0.016203430615984123,
+    "test_mean": 0.25808856725900725,
+    "test_std": 0.015585938206467084,
+    "initial_rmse_mean": 0.15703766353711876,
+    "initial_rmse_std": 0.07613135446729223,
+    "physics_joint_rmse_mean": 0.12468736421209752,
+    "physics_joint_rmse_std": 0.06691484745246491,
+    "training_seconds_mean": 245.94873664166758,
+    "training_seconds_std": 8.354808128627974
+  }
+]

@@ -1,0 +1,650 @@
+{
+  "reference": "Serial donor-cell FVM; cell-center point comparison",
+  "interpretation": "Descriptive single-run results; unequal training budgets or loss weighting do not establish optimizer superiority.",
+  "runs": [
+    {
+      "directory": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn/1788968508245505061",
+      "metadata": {
+        "seed": 2028,
+        "architecture": [
+          32,
+          32,
+          32
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda",
+        "epochs": 8064,
+        "learning_rate": 0.001,
+        "optimizer": "external torch.optim.Adam with framework AdaptiveLossWeights in Trainer",
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "adaptive_loss": true,
+        "loss_weights": null,
+        "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+        "loss_weight_names": [
+          "Initial",
+          "Boundary",
+          "PDE"
+        ],
+        "adaptive_weight_dtype": "torch.float32",
+        "adam_loss_weighting": "adaptive from zero log variances",
+        "loss_log_variance_bounds": null,
+        "initialization": "Xavier uniform weights; zero biases; Tanh activations",
+        "training_seconds": 374.37654381599896,
+        "smoke_test": true,
+        "collocation": {
+          "method": "full deterministic FVM grid every iteration",
+          "random_sampling": false,
+          "initial_points": 225,
+          "boundary_points": 6060,
+          "pde_points": 22500
+        },
+        "initial_loss_weights": {
+          "Initial": 1.0,
+          "Boundary": 1.0,
+          "PDE": 1.0
+        },
+        "initial_loss_log_vars": {
+          "Initial": 0.0,
+          "Boundary": 0.0,
+          "PDE": 0.0
+        },
+        "final_loss_weights": {
+          "Initial": 9.2003755569458,
+          "Boundary": 2434.5908203125,
+          "PDE": 1469.7115478515625
+        },
+        "final_loss_log_vars": {
+          "Initial": -2.2192442417144775,
+          "Boundary": -7.797533988952637,
+          "PDE": -7.292821407318115
+        },
+        "adam_weight_history_timing": "after each Adam update",
+        "mesh": {
+          "h": 0.1,
+          "k": 0.01,
+          "x_dom": [
+            0,
+            1.5
+          ],
+          "y_dom": [
+            0,
+            1.5
+          ],
+          "t_dom": [
+            0,
+            1
+          ]
+        },
+        "constants": {
+          "nu": 0.01,
+          "boundary": "zero_gradient",
+          "mean_velocity_u": 0.5,
+          "mean_velocity_v": 0.25,
+          "perturbation_amplitude": 1.0
+        },
+        "torch_version": "2.5.1",
+        "evaluation_device": "cuda",
+        "input_order": [
+          "t",
+          "x",
+          "y"
+        ],
+        "output_order": [
+          "u",
+          "v"
+        ],
+        "framework_evaluation_commit": "ee4a05e01c4374d36ad19a3a6cc7266d8d441620",
+        "framework_source_sha256": {
+          "Loss.py": "663dd5256e77aac3e8f5c242e1709d7ce1a8c59d0d2d8de4a5e0259d98fabb9c",
+          "Net.py": "8f3433dbca390a8a5f0c6d7abfff5a1de2bd657b61c55eada501f111124b8a3e",
+          "Trainer.py": "a5d09a9b00524dc79394e5d0b4c8544541c52dce578661e7ca990d9a05d96b4e"
+        },
+        "physics_validation": {
+          "rmse": [
+            0.03599642962217331,
+            0.031051097437739372
+          ],
+          "maximum_absolute": [
+            0.16673177480697632,
+            0.18770954012870789
+          ],
+          "points": 4725,
+          "grid": "quarter-cell offsets; up to first 21 cells per axis"
+        },
+        "fvm_comparison": {
+          "u": {
+            "rmse": 0.28149644363620563,
+            "mae": 0.19023516685329944,
+            "maximum_absolute": 1.3133235885630752,
+            "relative_l2": 0.4846658200493333
+          },
+          "v": {
+            "rmse": 0.2812943247047156,
+            "mae": 0.18785583235023579,
+            "maximum_absolute": 1.5999094659623863,
+            "relative_l2": 0.5896587959330247
+          }
+        },
+        "fvm_seconds": 0.008073000000877073,
+        "inference_seconds": 0.06495669700052531,
+        "fvm_dtype": "float64",
+        "reference": "serial donor-cell FVM; cell-center point comparison"
+      }
+    },
+    {
+      "directory": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn-de/1788968889766302153",
+      "metadata": {
+        "status": "complete",
+        "seed": 2028,
+        "de_seed": 3028,
+        "architecture": [
+          32,
+          32,
+          32
+        ],
+        "activation": "Tanh",
+        "dtype": "torch.float32",
+        "device": "cuda",
+        "torch_version": "2.5.1",
+        "hardware": "NVIDIA GeForce GTX 1650",
+        "torch_num_threads": 1,
+        "epochs": 4932,
+        "de_generations": 100,
+        "adam_epochs": 4832,
+        "schedule_unit": "one DE generation or one Adam epoch; unequal computation per slot",
+        "optimizer": "self-adaptive DE/rand/1/bin -> external torch.optim.Adam in Trainer",
+        "learning_rate": 0.001,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "adaptive_loss": true,
+        "de_adaptive_loss_weights": true,
+        "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+        "loss_weight_names": [
+          "Initial",
+          "Boundary",
+          "PDE"
+        ],
+        "adaptive_weight_dtype": "torch.float32",
+        "adam_loss_weighting": "adaptive from selected DE log variances",
+        "loss_log_variance_bounds": null,
+        "loss_log_variance_initialization_box": [
+          -4.0,
+          4.0
+        ],
+        "initial_loss_weights": {
+          "Initial": 1.0,
+          "Boundary": 1.0,
+          "PDE": 1.0
+        },
+        "loss_weights": null,
+        "reference_loss_weights": {
+          "Initial": 1.0,
+          "Boundary": 1.0,
+          "PDE": 1.0
+        },
+        "fitness_formula": "sum(exp(-s_i)*MSE_i+s_i), i=Initial,Boundary,PDE",
+        "reference_fitness_formula": "MSE_initial + MSE_boundary + MSE_PDE",
+        "fitness_role": "direct weight optimization; no inner PINN training per individual",
+        "initialization": "Xavier uniform weights; zero biases; preserved as population[0]",
+        "de": {
+          "population_size": 32,
+          "generations": 100,
+          "lower_bound": -2.0,
+          "upper_bound": 2.0,
+          "seed": 3028,
+          "control_adaptation": "jde",
+          "adaptation_probability": 0.1,
+          "initialization": "local",
+          "initial_spread": 0.05,
+          "strategy": "rand/1/bin",
+          "synchronous": true,
+          "initialization_description": "population[0] is unchanged network; others uniform in initial +/- initial_spread*bound_width, clipped",
+          "mutation_factor_range": [
+            0.3,
+            0.9
+          ],
+          "crossover_rate_range": [
+            0.0,
+            1.0
+          ],
+          "control_adaptation_description": "independent F/CR uniform proposals before mutation; inherit only on strict fitness improvement",
+          "replacement": "strict greedy <; target retained on ties",
+          "constraint_handling": "clip network parameters only; adaptive log variances unconstrained",
+          "stopping": "fixed complete generation count",
+          "expected_fitness_evaluations": 3232,
+          "fitness_evaluations": 3232,
+          "nonfinite_evaluations": 0,
+          "best_fitness": -0.8024876713752747
+        },
+        "genome_dimension": 2309,
+        "network_dimension": 2306,
+        "genome_layout": [
+          {
+            "name": "backbone.layers.0.weight",
+            "shape": [
+              32,
+              3
+            ],
+            "start": 0,
+            "stop": 96
+          },
+          {
+            "name": "backbone.layers.0.bias",
+            "shape": [
+              32
+            ],
+            "start": 96,
+            "stop": 128
+          },
+          {
+            "name": "backbone.layers.2.weight",
+            "shape": [
+              32,
+              32
+            ],
+            "start": 128,
+            "stop": 1152
+          },
+          {
+            "name": "backbone.layers.2.bias",
+            "shape": [
+              32
+            ],
+            "start": 1152,
+            "stop": 1184
+          },
+          {
+            "name": "backbone.layers.4.weight",
+            "shape": [
+              32,
+              32
+            ],
+            "start": 1184,
+            "stop": 2208
+          },
+          {
+            "name": "backbone.layers.4.bias",
+            "shape": [
+              32
+            ],
+            "start": 2208,
+            "stop": 2240
+          },
+          {
+            "name": "backbone.layers.6.weight",
+            "shape": [
+              2,
+              32
+            ],
+            "start": 2240,
+            "stop": 2304
+          },
+          {
+            "name": "backbone.layers.6.bias",
+            "shape": [
+              2
+            ],
+            "start": 2304,
+            "stop": 2306
+          },
+          {
+            "name": "loss_log_var_Initial",
+            "shape": [
+              1
+            ],
+            "start": 2306,
+            "stop": 2307
+          },
+          {
+            "name": "loss_log_var_Boundary",
+            "shape": [
+              1
+            ],
+            "start": 2307,
+            "stop": 2308
+          },
+          {
+            "name": "loss_log_var_PDE",
+            "shape": [
+              1
+            ],
+            "start": 2308,
+            "stop": 2309
+          }
+        ],
+        "collocation": {
+          "method": "full deterministic FVM-aligned grid",
+          "random_sampling": false,
+          "resampling_frequency": 0,
+          "graph_refresh": "fresh coordinates at every objective or Adam evaluation",
+          "initial_points": 225,
+          "boundary_points": 6060,
+          "pde_points": 22500,
+          "batching": "full batch per loss"
+        },
+        "mesh": {
+          "h": 0.1,
+          "k": 0.01,
+          "x_dom": [
+            0,
+            1.5
+          ],
+          "y_dom": [
+            0,
+            1.5
+          ],
+          "t_dom": [
+            0,
+            1
+          ]
+        },
+        "constants": {
+          "nu": 0.01,
+          "boundary": "zero_gradient",
+          "mean_velocity_u": 0.5,
+          "mean_velocity_v": 0.25,
+          "perturbation_amplitude": 1.0
+        },
+        "input_order": [
+          "t",
+          "x",
+          "y"
+        ],
+        "output_order": [
+          "u",
+          "v"
+        ],
+        "physical_parameters_inferred": [],
+        "observational_training_data": false,
+        "normalization": "network coordinates to [-1,1]; physical PDE unchanged",
+        "independent_runs": 1,
+        "framework_commit": "ee4a05e01c4374d36ad19a3a6cc7266d8d441620",
+        "framework_directory": "/home/esterci/Repositorios/ppgmc/Pinn-Torch",
+        "framework_source_sha256": {
+          "Loss.py": "663dd5256e77aac3e8f5c242e1709d7ce1a8c59d0d2d8de4a5e0259d98fabb9c",
+          "Net.py": "8f3433dbca390a8a5f0c6d7abfff5a1de2bd657b61c55eada501f111124b8a3e",
+          "Trainer.py": "a5d09a9b00524dc79394e5d0b4c8544541c52dce578661e7ca990d9a05d96b4e"
+        },
+        "experiment_source_sha256": {
+          "work_4/differential_evolution.py": "66e93b3a5055728c05f22f701d6ec58146791af24e4476245c1e9e6a57eab27f",
+          "work_4/pinn_de_adam.py": "e2d58a0c53cbb1e7a7fcd9d37428631fa61bdbff08ca3b7f826fac5ff1862c7f",
+          "work_4/train_pinn_de_adam.py": "1e8e99141dd757d69562d30d60842c07a175ee545aa9ff36566ba0b3b09f0ff8",
+          "work_4/pinn_model.py": "438248a4ecf630b47ce99c82744fa84daf06aa44bd09d2c6b50b8e04d041c129",
+          "work_4/train_pinn.py": "ceb1559ceb93743a83f6dd5b71e2d5a897418b2e23c5978006eeb78958f73dfb",
+          "work_4/fvm_model_serial.py": "1809bb03d48cb58180137f208072e4326264972061c0abc39aebb7e9fe752957",
+          "work_3/rastrigin/de_best_1_bin_adpt.py": "0938b89339ba6d54fcdaa70ba766cbbcb98a41450a6800bc63962eb0c08bd7a2"
+        },
+        "de_seconds": 82.03780614300013,
+        "de_best_losses": {
+          "Initial": 0.2687281370162964,
+          "Boundary": 0.06540469825267792,
+          "PDE": 0.10549446940422058
+        },
+        "de_best_reference_fitness": 0.4396273046731949,
+        "de_best_loss_weights": {
+          "Initial": 1.4131495952606201,
+          "Boundary": 1.8370317220687866,
+          "PDE": 1.6940704584121704
+        },
+        "de_best_loss_log_vars": {
+          "Initial": -0.34582096338272095,
+          "Boundary": -0.6081511378288269,
+          "PDE": -0.5271341800689697
+        },
+        "de_physics_validation": {
+          "rmse": [
+            0.16221824288368225,
+            0.4314345419406891
+          ],
+          "maximum_absolute": [
+            0.39736640453338623,
+            1.0014642477035522
+          ],
+          "points": 4725,
+          "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+        },
+        "adam_seconds": 248.60800560999996,
+        "final_losses": {
+          "Initial": 0.026355188339948654,
+          "Boundary": 0.0004823192721232772,
+          "PDE": 0.007116509601473808
+        },
+        "final_loss_log_vars": {
+          "Initial": -3.715023994445801,
+          "Boundary": -5.3692779541015625,
+          "PDE": -4.559009552001953
+        },
+        "final_loss_weights": {
+          "Initial": 41.059574127197266,
+          "Boundary": 214.70779418945312,
+          "PDE": 95.48885345458984
+        },
+        "adam_weight_history_timing": "after each Adam update",
+        "final_reference_fitness": 0.03395401721354574,
+        "final_regularized_fitness": -11.778074264526367,
+        "physics_validation": {
+          "rmse": [
+            0.10085848718881607,
+            0.10146398842334747
+          ],
+          "maximum_absolute": [
+            0.9501903057098389,
+            0.6714415550231934
+          ],
+          "points": 4725,
+          "grid": "quarter-cell offsets; up to 21 evenly selected cells per axis"
+        },
+        "fvm_comparison": {
+          "u": {
+            "rmse": 0.18484290757336047,
+            "mae": 0.11943703786193044,
+            "maximum_absolute": 0.9965535332323263,
+            "relative_l2": 0.3182528284269356
+          },
+          "v": {
+            "rmse": 0.2074519971496471,
+            "mae": 0.11951493414526974,
+            "maximum_absolute": 1.5014923030671836,
+            "relative_l2": 0.4348679802963387
+          }
+        },
+        "fvm_seconds": 0.008621900000434835,
+        "inference_seconds": 0.09631110000009357,
+        "fvm_dtype": "float64",
+        "reference": "serial donor-cell FVM; cell-center point comparison",
+        "diagnostic_objective_evaluations": 2
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "method": "PINN Adam",
+      "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn/1788968508245505061",
+      "variable": "u",
+      "rmse": 0.28149644363620563,
+      "mae": 0.19023516685329944,
+      "maximum_absolute": 1.3133235885630752,
+      "relative_l2": 0.4846658200493333,
+      "adaptive_loss": true,
+      "loss_weights": null,
+      "de_adaptive_loss_weights": false,
+      "de_adaptive_pde_weights": false,
+      "loss_weight_names": [
+        "Initial",
+        "Boundary",
+        "PDE"
+      ],
+      "de_best_loss_weights": null,
+      "final_loss_weights": {
+        "Initial": 9.2003755569458,
+        "Boundary": 2434.5908203125,
+        "PDE": 1469.7115478515625
+      },
+      "adam_loss_weighting": "adaptive from zero log variances",
+      "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+      "fitness_formula": null,
+      "reference_fitness_formula": null,
+      "epochs": 8064,
+      "de_generations": 0,
+      "adam_epochs": 8064,
+      "fitness_evaluations": null,
+      "training_seconds": 374.37654381599896,
+      "de_seconds": null,
+      "adam_seconds": null,
+      "seed": 2028,
+      "de_seed": null,
+      "architecture": [
+        32,
+        32,
+        32
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda"
+    },
+    {
+      "method": "PINN Adam",
+      "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn/1788968508245505061",
+      "variable": "v",
+      "rmse": 0.2812943247047156,
+      "mae": 0.18785583235023579,
+      "maximum_absolute": 1.5999094659623863,
+      "relative_l2": 0.5896587959330247,
+      "adaptive_loss": true,
+      "loss_weights": null,
+      "de_adaptive_loss_weights": false,
+      "de_adaptive_pde_weights": false,
+      "loss_weight_names": [
+        "Initial",
+        "Boundary",
+        "PDE"
+      ],
+      "de_best_loss_weights": null,
+      "final_loss_weights": {
+        "Initial": 9.2003755569458,
+        "Boundary": 2434.5908203125,
+        "PDE": 1469.7115478515625
+      },
+      "adam_loss_weighting": "adaptive from zero log variances",
+      "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+      "fitness_formula": null,
+      "reference_fitness_formula": null,
+      "epochs": 8064,
+      "de_generations": 0,
+      "adam_epochs": 8064,
+      "fitness_evaluations": null,
+      "training_seconds": 374.37654381599896,
+      "de_seconds": null,
+      "adam_seconds": null,
+      "seed": 2028,
+      "de_seed": null,
+      "architecture": [
+        32,
+        32,
+        32
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda"
+    },
+    {
+      "method": "PINN DE \u2192 Adam",
+      "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn-de/1788968889766302153",
+      "variable": "u",
+      "rmse": 0.18484290757336047,
+      "mae": 0.11943703786193044,
+      "maximum_absolute": 0.9965535332323263,
+      "relative_l2": 0.3182528284269356,
+      "adaptive_loss": true,
+      "loss_weights": null,
+      "de_adaptive_loss_weights": true,
+      "de_adaptive_pde_weights": false,
+      "loss_weight_names": [
+        "Initial",
+        "Boundary",
+        "PDE"
+      ],
+      "de_best_loss_weights": {
+        "Initial": 1.4131495952606201,
+        "Boundary": 1.8370317220687866,
+        "PDE": 1.6940704584121704
+      },
+      "final_loss_weights": {
+        "Initial": 41.059574127197266,
+        "Boundary": 214.70779418945312,
+        "PDE": 95.48885345458984
+      },
+      "adam_loss_weighting": "adaptive from selected DE log variances",
+      "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+      "fitness_formula": "sum(exp(-s_i)*MSE_i+s_i), i=Initial,Boundary,PDE",
+      "reference_fitness_formula": "MSE_initial + MSE_boundary + MSE_PDE",
+      "epochs": 4932,
+      "de_generations": 100,
+      "adam_epochs": 4832,
+      "fitness_evaluations": 3232,
+      "training_seconds": null,
+      "de_seconds": 82.03780614300013,
+      "adam_seconds": 248.60800560999996,
+      "seed": 2028,
+      "de_seed": 3028,
+      "architecture": [
+        32,
+        32,
+        32
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda"
+    },
+    {
+      "method": "PINN DE \u2192 Adam",
+      "run": "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/studies/pinn_pair_de32_g100_1788968487925081526/runs/confirm_h32x3_lr1e3_s2028_pinn-de/1788968889766302153",
+      "variable": "v",
+      "rmse": 0.2074519971496471,
+      "mae": 0.11951493414526974,
+      "maximum_absolute": 1.5014923030671836,
+      "relative_l2": 0.4348679802963387,
+      "adaptive_loss": true,
+      "loss_weights": null,
+      "de_adaptive_loss_weights": true,
+      "de_adaptive_pde_weights": false,
+      "loss_weight_names": [
+        "Initial",
+        "Boundary",
+        "PDE"
+      ],
+      "de_best_loss_weights": {
+        "Initial": 1.4131495952606201,
+        "Boundary": 1.8370317220687866,
+        "PDE": 1.6940704584121704
+      },
+      "final_loss_weights": {
+        "Initial": 41.059574127197266,
+        "Boundary": 214.70779418945312,
+        "PDE": 95.48885345458984
+      },
+      "adam_loss_weighting": "adaptive from selected DE log variances",
+      "adaptive_formula": "sum(exp(-s_i)*MSE_i + s_i)",
+      "fitness_formula": "sum(exp(-s_i)*MSE_i+s_i), i=Initial,Boundary,PDE",
+      "reference_fitness_formula": "MSE_initial + MSE_boundary + MSE_PDE",
+      "epochs": 4932,
+      "de_generations": 100,
+      "adam_epochs": 4832,
+      "fitness_evaluations": 3232,
+      "training_seconds": null,
+      "de_seconds": 82.03780614300013,
+      "adam_seconds": 248.60800560999996,
+      "seed": 2028,
+      "de_seed": 3028,
+      "architecture": [
+        32,
+        32,
+        32
+      ],
+      "dtype": "torch.float32",
+      "device": "cuda"
+    }
+  ]
+}

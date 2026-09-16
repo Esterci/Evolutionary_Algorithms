@@ -1,0 +1,61 @@
+test_adam_coefficient_overflow_records_failed_run_metadata (test_de_runner.DERunnerTests) ... ok
+test_adam_only_runner_preserves_matching_adaptive_state (test_de_runner.DERunnerTests) ... ok
+test_cli_defaults_and_invalid_weight_search_parameters (test_de_runner.DERunnerTests) ... ok
+test_cli_smoke_records_genes_raw_losses_budgets_and_fvm (test_de_runner.DERunnerTests) ... ok
+test_old_pde_flags_are_explicit_aliases_and_old_bounds_are_rejected (test_de_runner.DERunnerTests) ... ok
+test_all_nonfinite_initial_population_raises (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_bound_mask_requires_boolean_vector_on_genome_device (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_control_adaptation_works_for_large_genomes_and_preserves_rejected_controls (test_differential_evolution.DifferentialEvolutionTests) ... FAIL
+test_elitism_fitness_consistency_bounds_and_exact_budget (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_explicit_all_bounded_mask_preserves_seeded_default_behavior (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_explicit_bounds_reject_broadcasting_mismatch_and_invalid_intervals (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_initial_genome_equal_fitness_survival_and_no_aliasing (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_invalid_config_and_initial_vectors_raise (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_legacy_adaptation_retains_work3_control_ranges (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_local_initialization_mixed_bounds_and_reproducibility (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_nonfinite_candidates_are_counted_and_cannot_win (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_objective_errors_and_vector_outputs_are_not_swallowed (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_progress_callback_receives_independent_history_rows (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_reproducibility_and_global_rng_independence (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_residual_autograd_is_available (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_unbounded_genes_escape_initialization_box_while_network_stays_bounded (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_unbounded_overflow_is_counted_and_never_enters_population (test_differential_evolution.DifferentialEvolutionTests) ... ok
+test_cli_writes_combined_reports_figures_and_de_history (test_pinn_comparison.ComparisonTests) ... ok
+test_legacy_pde_only_adaptation_is_not_reported_as_three_term_adaptation (test_pinn_comparison.ComparisonTests) ... ok
+test_legacy_single_run_without_metadata_still_loads_and_plots (test_pinn_comparison.ComparisonTests) ... ok
+test_regularized_negative_fitness_is_plotted_without_log_clipping (test_pinn_comparison.ComparisonTests) ... ok
+test_rejects_incompatible_physics_grid_and_reference (test_pinn_comparison.ComparisonTests) ... ok
+test_selection_and_metrics_identify_both_methods (test_pinn_comparison.ComparisonTests) ... ok
+test_shared_field_and_error_scales (test_pinn_comparison.ComparisonTests) ... ok
+test_three_adaptive_weights_are_reported_and_plotted_through_both_stages (test_pinn_comparison.ComparisonTests) ... ok
+test_adaptive_handoff_rejects_wrong_genome_lengths_and_nonfinite_genes (test_pinn_de_adam.AdamHandoffTests) ... ok
+test_all_three_best_genes_continue_adapting_with_exact_framework_adam_step (test_pinn_de_adam.AdamHandoffTests) ... ok
+test_baseline_pinn_and_handoff_match_from_identical_adaptive_state (test_pinn_de_adam.AdamHandoffTests) ... ok
+test_real_de_then_adam_uses_best_genome_with_exact_stage_budgets (test_pinn_de_adam.AdamHandoffTests) ... ok
+test_restored_best_is_adam_start_and_same_parameters_are_updated (test_pinn_de_adam.AdamHandoffTests) ... ok
+test_adaptation_requires_grouped_terms_and_finite_initial_bounds (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_adaptive_formula_exactly_matches_framework_for_all_three_terms (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_de_search_varies_all_three_loss_genes_and_preserves_best (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_nonfinite_candidates_and_exponential_overflow_are_failed_evaluations (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_pde_is_one_mse_over_both_residual_columns (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_regularization_and_reference_loss_are_consistent_for_every_term (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_reload_preserves_deterministic_fitness_and_raw_diagnostics (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_three_genes_roundtrip_initial_bounds_and_parameter_ownership (test_pinn_de_adam.EvolvedLossWeightTests) ... ok
+test_boundary_operator_selects_spatial_normal_derivatives (test_pinn_de_adam.MathematicalResidualTests) ... ok
+test_conservative_residual_matches_manufactured_polynomial (test_pinn_de_adam.MathematicalResidualTests) ... ok
+test_adaptive_weights_and_wrong_genome_layout_are_rejected (test_pinn_de_adam.PINNFitnessTests) ... ok
+test_deterministic_weighted_fitness_keeps_input_autograd_enabled (test_pinn_de_adam.PINNFitnessTests) ... ok
+test_genome_copy_preserves_parameters_buffers_and_ownership (test_pinn_de_adam.PINNFitnessTests) ... ok
+
+======================================================================
+FAIL: test_control_adaptation_works_for_large_genomes_and_preserves_rejected_controls (test_differential_evolution.DifferentialEvolutionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/esterci/Repositorios/ppgmc/Evolutionary_Algorithms/work_4/tests/test_differential_evolution.py", line 108, in test_control_adaptation_works_for_large_genomes_and_preserves_rejected_controls
+    self.assertGreater(row["accepted_trials"], 0)
+AssertionError: 0 not greater than 0
+
+----------------------------------------------------------------------
+Ran 48 tests in 12.374s
+
+FAILED (failures=1)

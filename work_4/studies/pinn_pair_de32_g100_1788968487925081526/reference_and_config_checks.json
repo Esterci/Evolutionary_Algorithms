@@ -1,0 +1,8 @@
+{
+  "matches_previous_study": true,
+  "sha256": {
+    "mesh_properties.json": "43e420b1748caeeb76e2e8040e257283f992fbfdfab9d670f8d0ff38ad480b0c",
+    "constant_properties.json": "0369dc37095ec2f192d2d7b80cd25eee67182eefba6952de1c596eefc3af7edc",
+    "refined_fvm.npz": "cfbd1bd8470cf4d71317c49d287348128fa5108cc651ac9108d89768a247fb80"
+  }
+}

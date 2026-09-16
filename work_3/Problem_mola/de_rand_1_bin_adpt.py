@@ -35,19 +35,12 @@ def constraint_values(x):
     wire_diameter = x[..., 2]
     return tc.stack(
         (
-            1.0
-            - coil_diameter**3 * number_of_coils
-            / (71785.0 * wire_diameter**4),
+            1.0 - coil_diameter**3 * number_of_coils / (71785.0 * wire_diameter**4),
             (4.0 * coil_diameter**2 - wire_diameter * coil_diameter)
-            / (
-                12566.0
-                * (coil_diameter * wire_diameter**3 - wire_diameter**4)
-            )
+            / (12566.0 * (coil_diameter * wire_diameter**3 - wire_diameter**4))
             + 1.0 / (5108.0 * wire_diameter**2)
             - 1.0,
-            1.0
-            - 140.45 * wire_diameter
-            / (coil_diameter**2 * number_of_coils),
+            1.0 - 140.45 * wire_diameter / (coil_diameter**2 * number_of_coils),
             (coil_diameter + wire_diameter) / 1.5 - 1.0,
         ),
         dim=-1,
@@ -89,8 +82,12 @@ def select_best_index(fitness, objectives, violations):
 
 
 def save_evolution_curve(
-    curve, output_directory, population_size, seed,
-    max_fitness_evaluations, evaluation_step,
+    curve,
+    output_directory,
+    population_size,
+    seed,
+    max_fitness_evaluations,
+    evaluation_step,
 ):
     """Save one run using the complete configuration in its filename."""
     output_directory = Path(output_directory)
@@ -108,8 +105,11 @@ def save_evolution_curve(
 
 
 def save_final_result(
-    result, output_directory, population_size,
-    max_fitness_evaluations, evaluation_step,
+    result,
+    output_directory,
+    population_size,
+    max_fitness_evaluations,
+    evaluation_step,
 ):
     """Append one run to the CSV identified by the experiment configuration."""
     output_directory = Path(output_directory)
@@ -170,11 +170,13 @@ def differential_evolution(
         population_size, dtype=tc.float64, generator=generator
     )
 
-    evolution_curve = [{
-        "seed": seed,
-        "fitness_evaluations": fitness_evaluations,
-        **population_statistics(fitness, violations),
-    }]
+    evolution_curve = [
+        {
+            "seed": seed,
+            "fitness_evaluations": fitness_evaluations,
+            **population_statistics(fitness, violations),
+        }
+    ]
     next_curve_evaluation = fitness_evaluations + evaluation_step
     completed_generations = 0
     partial_generation_evaluations = 0
@@ -220,7 +222,10 @@ def differential_evolution(
                 child_weight = (
                     differential_weights[donors[0]]
                     + differential_weight
-                    * (differential_weights[donors[1]] - differential_weights[donors[2]])
+                    * (
+                        differential_weights[donors[1]]
+                        - differential_weights[donors[2]]
+                    )
                 ).clamp(0.3, 0.9)
                 child_crossover = (
                     crossover_rates[donors[0]]
@@ -246,11 +251,13 @@ def differential_evolution(
                 new_crossover_rates[i] = child_crossover
 
             if fitness_evaluations == next_curve_evaluation:
-                evolution_curve.append({
-                    "seed": seed,
-                    "fitness_evaluations": fitness_evaluations,
-                    **population_statistics(new_fitness, new_violations),
-                })
+                evolution_curve.append(
+                    {
+                        "seed": seed,
+                        "fitness_evaluations": fitness_evaluations,
+                        **population_statistics(new_fitness, new_violations),
+                    }
+                )
                 next_curve_evaluation += evaluation_step
 
         population = new_population
@@ -268,18 +275,24 @@ def differential_evolution(
     best_index, feasible_mask = select_best_index(fitness, objectives, violations)
     feasible_percentage = 100.0 * feasible_mask.to(tc.float64).mean().item()
     if evolution_curve[-1]["fitness_evaluations"] != fitness_evaluations:
-        evolution_curve.append({
-            "seed": seed,
-            "fitness_evaluations": fitness_evaluations,
-            **population_statistics(fitness, violations),
-        })
+        evolution_curve.append(
+            {
+                "seed": seed,
+                "fitness_evaluations": fitness_evaluations,
+                **population_statistics(fitness, violations),
+            }
+        )
 
     base_directory = Path(__file__).resolve().parent
     if output_directory is None:
         output_directory = base_directory / "evolution_curves"
     curve_path = save_evolution_curve(
-        evolution_curve, output_directory, population_size, seed,
-        max_fitness_evaluations, evaluation_step,
+        evolution_curve,
+        output_directory,
+        population_size,
+        seed,
+        max_fitness_evaluations,
+        evaluation_step,
     )
 
     best_x = population[best_index]
@@ -315,8 +328,11 @@ def differential_evolution(
     if results_directory is None:
         results_directory = base_directory / "results"
     result_path = save_final_result(
-        result, results_directory, population_size,
-        max_fitness_evaluations, evaluation_step,
+        result,
+        results_directory,
+        population_size,
+        max_fitness_evaluations,
+        evaluation_step,
     )
     print(f"Evolution curve saved to: {curve_path}")
     print(f"Final result saved to: {result_path}")

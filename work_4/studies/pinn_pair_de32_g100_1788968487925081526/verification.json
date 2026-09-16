@@ -1,0 +1,92 @@
+{
+  "completed_runs": 6,
+  "failed_runs": 0,
+  "run_checks": [
+    {
+      "method": "pinn",
+      "seed": 2028,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "method": "pinn-de",
+      "seed": 2028,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "method": "pinn",
+      "seed": 2029,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "method": "pinn-de",
+      "seed": 2029,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "method": "pinn",
+      "seed": 2030,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "method": "pinn-de",
+      "seed": 2030,
+      "returncode": 0,
+      "training_evaluations": 8064,
+      "architecture": [
+        32,
+        32,
+        32
+      ]
+    }
+  ],
+  "nonfinite_de_evaluations": 0,
+  "training_sources_unchanged": true,
+  "framework_sources_unchanged": true,
+  "shared_initial_5000_pinn_updates_exact": true,
+  "reference_and_config": "reference_and_config_checks.json",
+  "python_compile": "passed",
+  "report_links": "passed",
+  "shell_syntax": "passed",
+  "preset_argument_dry_run": "passed",
+  "constant_field_objective_check": "passed on CPU; no training",
+  "old_summary_reproduction": "matched previous stored test/PDE means",
+  "figures": "visually inspected budget comparison, test-time errors, DE diagnostics and representative initial/final fields and loss histories",
+  "unit_suite": "not rerun; training/framework code unchanged; report outputs checked directly",
+  "child_wall_seconds_total": 2196.4177633669988,
+  "training_seconds_total": 2170.620971987999,
+  "analysis_source_sha256": {
+    "analyze_paired_study.py": "b8cae622a31c55a8ea5063aabdbe09c020aa6fda917e1bccd79390b8268ecba3",
+    "analyze_de_budget_study.py": "2b25f6dfa6cf6f3a07dd86357bfaa1354524ad8f6b8d4577586b01c96882c560",
+    "run_de32_pair.sh": "70e113c4a505919067cc07ec12039a8183f43877607a66ca27b78d619b0831c6"
+  }
+}

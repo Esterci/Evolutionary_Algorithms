@@ -38,8 +38,7 @@ def constraint_values(x):
     """Return constraints g(x), all feasible when g(x) <= 0."""
 
     vessel_volume = (
-        tc.pi * x[..., 2] ** 2 * x[..., 3]
-        + (4.0 / 3.0) * tc.pi * x[..., 2] ** 3
+        tc.pi * x[..., 2] ** 2 * x[..., 3] + (4.0 / 3.0) * tc.pi * x[..., 2] ** 3
     )
     # Normalize the source constraints without changing their feasible set.
     return tc.stack(
@@ -70,8 +69,7 @@ def repair_design(x, lower_bounds, upper_bounds):
     repaired = tc.maximum(tc.minimum(x, upper_bounds), lower_bounds)
 
     repaired[..., :2] = (
-        tc.round(repaired[..., :2] / THICKNESS_INCREMENT)
-        * THICKNESS_INCREMENT
+        tc.round(repaired[..., :2] / THICKNESS_INCREMENT) * THICKNESS_INCREMENT
     )
     repaired = tc.maximum(tc.minimum(repaired, upper_bounds), lower_bounds)
 
@@ -347,9 +345,7 @@ def differential_evolution(
         else:
             partial_generation_evaluations = evaluations_this_generation
 
-    best_index, feasible_mask = select_best_index(
-        fitness, objectives, violations
-    )
+    best_index, feasible_mask = select_best_index(fitness, objectives, violations)
 
     feasible_percentage = 100.0 * feasible_mask.to(tc.float64).mean().item()
 
@@ -377,8 +373,7 @@ def differential_evolution(
 
     result = {
         "algorithm": (
-            "Self-adaptive DE/rand/1/bin for pressure vessel "
-            "with quadratic penalty"
+            "Self-adaptive DE/rand/1/bin for pressure vessel " "with quadratic penalty"
         ),
         "best_f": fitness[best_index].item(),
         "best_objective": objectives[best_index].item(),
