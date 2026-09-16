@@ -17,7 +17,6 @@ import inspect
 import json
 import math
 from pathlib import Path
-import subprocess
 import sys
 import time
 
@@ -48,6 +47,7 @@ from methods.pinn_model import (
     save_loss_weight_artifacts,
 )
 from runners.train_pinn import compare_fvm
+from utils.source_metadata import git_revision
 
 
 def physics_validation(problem, model, maximum_cells=21):
@@ -95,12 +95,7 @@ def source_metadata():
         for cls in (Trainer, LOSS, FullyConnectedNetwork)
     }
     framework_root = Path(inspect.getfile(Trainer)).resolve().parent.parent
-    commit = subprocess.run(
-        ["git", "-C", str(framework_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    commit, commit_error = git_revision(framework_root)
     local_sources = [
         BASE_DIRECTORY / name
         for name in (
@@ -112,13 +107,15 @@ def source_metadata():
             "runners/train_pinn.py",
             "methods/fvm_model_serial.py",
             "methods/training_controls.py",
+            "utils/source_metadata.py",
         )
     ]
     local_sources.append(
         BASE_DIRECTORY.parent / "work_3/rastrigin/de_best_1_bin_adpt.py"
     )
     return dict(
-        framework_commit=commit.stdout.strip() or None,
+        framework_commit=commit,
+        framework_commit_error=commit_error,
         framework_directory=str(framework_root),
         framework_source_sha256={
             p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(sources)

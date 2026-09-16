@@ -18,7 +18,6 @@ import hashlib
 import inspect
 import json
 from pathlib import Path
-import subprocess
 import time
 
 # Direct script execution must expose the work_4 packages.
@@ -28,6 +27,7 @@ if __package__ in (None, ""):
 
 import numpy as np
 import torch
+from utils.source_metadata import git_revision
 
 from methods.training_controls import (add_control_arguments, control_config, save_training_controls, require_training_control_api)
 
@@ -290,7 +290,8 @@ def main(argv=None):
         metadata['experiment_source_sha256'] = {
             name: hashlib.sha256((BASE_DIRECTORY / name).read_bytes()).hexdigest()
             for name in ('methods/pinn_model.py', 'methods/loss_weight_config.py', 'methods/training_controls.py',
-                         'methods/fvm_model_serial.py', 'runners/train_pinn.py')
+                         'methods/fvm_model_serial.py', 'runners/train_pinn.py',
+                         'utils/source_metadata.py')
         }
         if args.adaptive:
             if not torch.isfinite(log_history).all():
@@ -315,11 +316,7 @@ def main(argv=None):
         }
     )
     framework_root = source_paths[0].parent.parent
-    commit = subprocess.run(
-        ["git", "-C", str(framework_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-    )
+    commit, commit_error = git_revision(framework_root)
     metadata.update(
         mesh=mesh,
         constants=constants,
@@ -327,7 +324,8 @@ def main(argv=None):
         evaluation_device=args.device,
         input_order=["t", "x", "y"],
         output_order=["u", "v"],
-        framework_evaluation_commit=commit.stdout.strip() or None,
+        framework_evaluation_commit=commit,
+        framework_evaluation_commit_error=commit_error,
         framework_source_sha256={
             p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths
         },
