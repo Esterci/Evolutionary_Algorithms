@@ -4,7 +4,7 @@
 #PBS -o loss_weight_study.out
 #PBS -e loss_weight_study.err
 #PBS -l walltime=12:30:00
-#PBS -l select=1:ncpus=16:mpiprocs=16:host=compute-3-26
+#PBS -l select=1:ncpus=1:mpiprocs=1:ngpus=1:host=compute-1-1
 
 set -eo pipefail
 
@@ -34,4 +34,5 @@ conda activate torch-numba-11
 
 # Ensure the study uses the activated environment's interpreter.
 export PYTHON_BIN="$CONDA_PREFIX/bin/python"
-exec bash shells/run_loss_weight_study.sh "$@"
+
+exec time GENERATIONS=400 BUDGET=29000 RUNS=10 POPULATION_SIZE=32 bash shells/run_loss_weight_study.sh   --hidden-sizes 32 32 32 32   --activation-functions Tanh ReLu Tanh ReLu   --adaptation-probability 0.1 --initial-loss-weights 10 10 10 "$@"
