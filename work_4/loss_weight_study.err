@@ -1,0 +1,5 @@
+
+real	167m14.853s
+user	159m3.679s
+sys	3m57.259s
+/var/spool/pbs/mom_priv/jobs/182860.frontend.SC: line 21: unexpected EOF while looking for matching `"'
