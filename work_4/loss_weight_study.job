@@ -8,32 +8,15 @@
 
 set -eo pipefail
 
+cd "$PBS_O_WORKDIR"
+
 cat "${PBS_NODEFILE:?PBS node file is unavailable.}"
 
-# Initialize Conda explicitly because batch shells may not load its shell hook.
-# Set CONDA_BASE when Conda is installed outside these standard locations.
-conda_base="/home/thiago.esterci/.conda"
-
-if [[ -z "$conda_base" ]]; then
-    if command -v conda >/dev/null 2>&1; then
-        conda_base=$(conda info --base)
-    else
-        for candidate in "$HOME/miniconda3" "$HOME/anaconda3" "$HOME/miniforge3"; do
-            if [[ -f "$candidate/etc/profile.d/conda.sh" ]]; then
-                conda_base=$candidate
-                break
-            fi
-        done
-    fi
-fi
-if [[ ! -f "$conda_base/etc/profile.d/conda.sh" ]]; then
-    echo "Conda initialization was not found. Submit with qsub -v CONDA_BASE=/path/to/conda loss_weight_study.job." >&2
-    exit 1
-fi
-source "$conda_base/etc/profile.d/conda.sh"
-conda activate torch-numba-11
-
 # Ensure the study uses the activated environment's interpreter.
-export PYTHON_BIN="$CONDA_PREFIX/bin/python"
+export PYTHON_BIN="/home/thiago.esterci/.conda/envs/torch-numba-11/bin/python"
 
-exec time GENERATIONS=400 BUDGET=29000 RUNS=10 POPULATION_SIZE=32 bash shells/run_loss_weight_study.sh   --hidden-sizes 32 32 32 32   --activation-functions Tanh ReLu Tanh ReLu   --adaptation-probability 0.1 --initial-loss-weights 10 10 10 "$@"
+pwd
+
+time GENERATIONS=400 BUDGET=29000 RUNS=10 POPULATION_SIZE=32 bash shells/run_loss_weight_study.sh   --hidden-sizes 32
+32 32 32   --activation-functions Tanh ReLu Tanh ReLu   --adaptation-probability 0.1 --initial-loss-weights 10 10 10 "
+$@
