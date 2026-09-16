@@ -12,7 +12,8 @@ cat "${PBS_NODEFILE:?PBS node file is unavailable.}"
 
 # Initialize Conda explicitly because batch shells may not load its shell hook.
 # Set CONDA_BASE when Conda is installed outside these standard locations.
-conda_base=${CONDA_BASE:-}
+conda_base="/home/thiago.esterci/.conda"
+
 if [[ -z "$conda_base" ]]; then
     if command -v conda >/dev/null 2>&1; then
         conda_base=$(conda info --base)
