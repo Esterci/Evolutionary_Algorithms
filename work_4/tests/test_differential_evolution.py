@@ -22,6 +22,10 @@ class DifferentialEvolutionTests(unittest.TestCase):
             DEConfig(population_size=4, generations=2),
             on_generation=recorded.append,
         )
+        self.assertAlmostEqual(result.history[-1]['std_mutation_factor'],
+                               result.mutation_factors.std(unbiased=False).item())
+        self.assertAlmostEqual(result.history[-1]['std_crossover_rate'],
+                               result.crossover_rates.std(unbiased=False).item())
         self.assertEqual(recorded, result.history)
         self.assertEqual([row["generation"] for row in recorded], [0, 1, 2])
         recorded[0]["best_fitness"] = -1.0

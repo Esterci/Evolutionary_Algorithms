@@ -288,7 +288,9 @@ def differential_evolution(
                 .mean()
                 .item(),
                 "mean_mutation_factor": mutation_factors.mean().item(),
+                "std_mutation_factor": mutation_factors.std(unbiased=False).item(),
                 "mean_crossover_rate": crossover_rates.mean().item(),
+                "std_crossover_rate": crossover_rates.std(unbiased=False).item(),
             }
         )
         if on_generation is not None:

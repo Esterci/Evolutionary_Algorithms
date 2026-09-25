@@ -1,0 +1,42 @@
+[
+  {
+    "mode": "de",
+    "seed": 2031,
+    "de_seed": 3031,
+    "run": "runs/seed_2031_de/1789566568615853831",
+    "final_best_fitness": -6.700626373291016,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "selection_source": "metadata.json",
+    "plot_status": "not regenerated: local de_history.npz and losses.npz are missing"
+  },
+  {
+    "mode": "pinn",
+    "seed": 2028,
+    "de_seed": 3028,
+    "run": "runs/seed_2028_pinn/1789563647938019267",
+    "final_best_fitness": 260.22589111328125,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "selection_source": "metadata.json",
+    "plot_status": "not regenerated: local de_history.npz and losses.npz are missing"
+  },
+  {
+    "mode": "both",
+    "seed": 2031,
+    "de_seed": 3031,
+    "run": "runs/seed_2031_both/1789567113249634193",
+    "final_best_fitness": -6.700626373291016,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "selection_source": "metadata.json",
+    "plot_status": "not regenerated: local de_history.npz and losses.npz are missing"
+  },
+  {
+    "mode": "none",
+    "seed": 2028,
+    "de_seed": 3028,
+    "run": "runs/seed_2028_none/1789564104322714983",
+    "final_best_fitness": 260.22589111328125,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "selection_source": "metadata.json",
+    "plot_status": "not regenerated: local de_history.npz and losses.npz are missing"
+  }
+]

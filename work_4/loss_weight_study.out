@@ -1,7 +1,7 @@
 compute-1-1.localdomain
 /home/thiago.esterci/Repositories/Evolutionary_Algorithms/work_4
 Per-run budget: 29000 = 12832 DE evaluations + 16168 Adam updates (maximum).
-Study: /home/thiago.esterci/Repositories/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789563353185616928
+Study: /home/thiago.esterci/Repositories/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789587361856613637
 START seed_2028_de
 COMPLETE seed_2028_de
 START seed_2028_pinn
@@ -82,4 +82,4 @@ START seed_2037_none
 COMPLETE seed_2037_none
 START seed_2037_de
 COMPLETE seed_2037_de
-Report: /home/thiago.esterci/Repositories/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789563353185616928/analysis/README.md
+Report: /home/thiago.esterci/Repositories/Evolutionary_Algorithms/work_4/studies/loss_weight_study_1789587361856613637/analysis/README.md
