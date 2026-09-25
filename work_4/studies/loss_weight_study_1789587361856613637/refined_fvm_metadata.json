@@ -1,0 +1,29 @@
+{
+  "mesh": {
+    "h": 0.05,
+    "k": 0.005,
+    "x_dom": [
+      0,
+      1.5
+    ],
+    "y_dom": [
+      0,
+      1.5
+    ],
+    "t_dom": [
+      0,
+      1
+    ]
+  },
+  "constants": {
+    "nu": 0.01,
+    "boundary": "zero_gradient",
+    "mean_velocity_u": 0.5,
+    "mean_velocity_v": 0.25,
+    "perturbation_amplitude": 1.0
+  },
+  "dtype": "float64",
+  "fvm_seconds": 0.022184378001838923,
+  "purpose": "independent validation/test reference; never enters training losses",
+  "limitation": "first-order FVM point/cell comparison; refinement is not an accuracy proof"
+}

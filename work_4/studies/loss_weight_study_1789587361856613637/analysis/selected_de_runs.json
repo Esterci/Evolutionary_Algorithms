@@ -1,0 +1,38 @@
+[
+  {
+    "mode": "de",
+    "seed": 2028,
+    "de_seed": 3028,
+    "run": "runs/seed_2028_de/1789587366636728338",
+    "final_best_fitness": -4.80283260345459,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "missing_population_std": []
+  },
+  {
+    "mode": "pinn",
+    "seed": 2033,
+    "de_seed": 3033,
+    "run": "runs/seed_2033_pinn/1789593985737034125",
+    "final_best_fitness": 2.6783523559570312,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "missing_population_std": []
+  },
+  {
+    "mode": "both",
+    "seed": 2028,
+    "de_seed": 3028,
+    "run": "runs/seed_2028_both/1789588105809677420",
+    "final_best_fitness": -4.80283260345459,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "missing_population_std": []
+  },
+  {
+    "mode": "none",
+    "seed": 2033,
+    "de_seed": 3033,
+    "run": "runs/seed_2033_none/1789594651157812561",
+    "final_best_fitness": 2.6783523559570312,
+    "criterion": "minimum final DE best fitness within mode; ties resolved by seed",
+    "missing_population_std": []
+  }
+]

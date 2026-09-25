@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "de",
+    "seed": 2034,
+    "de_seed": 3034,
+    "run": "runs/seed_2034_de/1789595770073447571",
+    "validation_rmse": 0.2361537581084496,
+    "criterion": "minimum validation RMSE; ties resolved by seed"
+  },
+  {
+    "mode": "pinn",
+    "seed": 2029,
+    "de_seed": 3029,
+    "run": "runs/seed_2029_pinn/1789588691666850149",
+    "validation_rmse": 0.2381834049887477,
+    "criterion": "minimum validation RMSE; ties resolved by seed"
+  },
+  {
+    "mode": "both",
+    "seed": 2037,
+    "de_seed": 3037,
+    "run": "runs/seed_2037_both/1789599304714046185",
+    "validation_rmse": 0.2273595158510706,
+    "criterion": "minimum validation RMSE; ties resolved by seed"
+  },
+  {
+    "mode": "none",
+    "seed": 2028,
+    "de_seed": 3028,
+    "run": "runs/seed_2028_none/1789588452014996661",
+    "validation_rmse": 0.23413366101798433,
+    "criterion": "minimum validation RMSE; ties resolved by seed"
+  }
+]
